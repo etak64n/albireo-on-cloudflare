@@ -1,5 +1,5 @@
 import { ArrowRight, ChevronRight, History, House, KeyRound, Layers, LayoutGrid, ListVideo, LogOut, Menu as MenuIcon, Plus, Search, Settings, Upload, UserRound, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import appearance from "virtual:albireo-appearance";
 import { SEARCH_QUERY_MAX_LENGTH, TITLE_MAX_LENGTH } from "../../shared/api.ts";
 import { api } from "../api.ts";
@@ -12,7 +12,8 @@ import { useUploads } from "../uploads.tsx";
 import { Avatar } from "./Avatar.tsx";
 import { Button } from "./ui/button.tsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu.tsx";
-import { Input } from "./ui/field.tsx";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "./ui/dialog.tsx";
+import { Input, Label } from "./ui/field.tsx";
 import { Sheet, SheetClose, SheetContent } from "./ui/sheet.tsx";
 import { useToast } from "./ui/toast.tsx";
 import { DropOverlay, UploadPanel } from "./VideoUpload.tsx";
@@ -262,7 +263,7 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
 /**
  * A group of the sidebar, the series or the playlists: a heading that opens the page that lists
  * them, the 5 changed last, a row that opens that page when there are more, and a last row that
- * opens the form for a new one in its place.
+ * opens a dialog for a new one.
  */
 function SidebarGroup({
   heading,
@@ -325,14 +326,11 @@ function SidebarGroup({
           <span className="truncate">{allLabel}</span>
         </Link>
       )}
-      {creating ? (
-        <NewItemForm titleLabel={titleLabel} create={create} onDone={() => setCreating(false)} />
-      ) : (
-        <button type="button" onClick={() => setCreating(true)} className={SIDEBAR_ACTION}>
-          <Plus aria-hidden="true" />
-          <span className="truncate">{newLabel}</span>
-        </button>
-      )}
+      <button type="button" onClick={() => setCreating(true)} className={SIDEBAR_ACTION}>
+        <Plus aria-hidden="true" />
+        <span className="truncate">{newLabel}</span>
+      </button>
+      <NewItemDialog open={creating} heading={newLabel} titleLabel={titleLabel} create={create} onClose={() => setCreating(false)} />
     </div>
   );
 }
@@ -354,11 +352,43 @@ function NavLink({ to, current, icon, children }: { to: string; current: boolean
   );
 }
 
-/** Makes a series or a playlist from its title and opens its page. The page edits the description. */
+/**
+ * The dialog that makes a series or a playlist from its title and opens its page, where its
+ * description is edited. A dialog that opens again starts empty.
+ */
+function NewItemDialog({
+  open,
+  heading,
+  titleLabel,
+  create,
+  onClose,
+}: {
+  open: boolean;
+  heading: string;
+  titleLabel: string;
+  create: (title: string) => Promise<string>;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <DialogContent>
+        <DialogTitle>{heading}</DialogTitle>
+        {open && <NewItemForm titleLabel={titleLabel} create={create} onDone={onClose} />}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function NewItemForm({ titleLabel, create, onDone }: { titleLabel: string; create: (title: string) => Promise<string>; onDone: () => void }) {
   const { refresh } = useLibrary();
   const toast = useToast();
   const t = useT();
+  const fieldId = useId();
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -380,19 +410,24 @@ function NewItemForm({ titleLabel, create, onDone }: { titleLabel: string; creat
 
   return (
     <form
-      className="grid gap-2 pb-2"
+      className="grid gap-4"
       onSubmit={(event) => {
         event.preventDefault();
         if (title.trim() !== "") void submit();
       }}
     >
-      <Input value={title} maxLength={TITLE_MAX_LENGTH} onChange={(e) => setTitle(e.target.value)} aria-label={titleLabel} placeholder={titleLabel} autoFocus />
-      {error && <p className="text-xs font-semibold text-critical">{error}</p>}
-      <div className="flex gap-2">
+      <div className="grid gap-1.5">
+        <Label htmlFor={fieldId}>{titleLabel}</Label>
+        <Input id={fieldId} value={title} maxLength={TITLE_MAX_LENGTH} onChange={(e) => setTitle(e.target.value)} autoFocus />
+      </div>
+      {error && <p className="error-box">{error}</p>}
+      <div className="flex justify-end gap-2">
+        <DialogClose asChild>
+          <Button>{t.common.cancel}</Button>
+        </DialogClose>
         <Button type="submit" variant="primary" disabled={saving || title.trim() === ""}>
           {saving ? t.shell.creating : t.shell.create}
         </Button>
-        <Button onClick={onDone}>{t.common.cancel}</Button>
       </div>
     </form>
   );
