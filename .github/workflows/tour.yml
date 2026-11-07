@@ -1,7 +1,8 @@
 # Records the tour of the demo that the README shows at its top, from the demo on GitHub
-# Pages: the home page, a video that plays, the slides attached to it, a time in a
-# comment, and a search, zooming in on the details, with the logo at its start and its
-# end. Run it by hand after the screens change, then put the artifact at images/tour.gif.
+# Pages: the home page, a video that plays, the slides attached to it, a comment typed
+# and posted with a time that plays the video from there, and a search, zooming in on the
+# details, with the logo at its start and its end. Run it by hand after the screens change,
+# then put the artifact at images/tour.gif.
 name: Tour
 
 on:
@@ -47,6 +48,8 @@ jobs:
           DEMO_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
           # A word of the titles of the sample videos, which the search of the tour finds.
           TOUR_QUERY: design
+          # The comment that the tour posts. Its time becomes a link in the posted comment.
+          TOUR_COMMENT: Trying this in our weekly report, starting with the chart at 0:05.
         run: |
           cat > tour.mjs <<'SCRIPT'
           import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -95,6 +98,8 @@ jobs:
           // Zooms in on a box of the viewport while the steps run, and out again after them. The
           // center is a share of the width and the height, whatever the size of the frames.
           const zooms = [];
+          // Moments without a zoom that the previews show too.
+          const moments = [];
           const zoom = async (box, factor, steps) => {
             const from = seconds();
             await steps();
@@ -167,16 +172,32 @@ jobs:
           await pause(400);
           await preview.click();
           await page.getByRole("dialog").locator("canvas").first().waitFor();
-          await pause(3600);
+          await pause(1800);
+          moments.push(seconds());
+          await pause(1800);
           await page.keyboard.press("Escape");
           await pause(800);
 
-          // A time in a comment, which plays the video from there.
+          // A comment, typed and posted. Its time becomes a link, which plays the video from there.
           await scrollTo(page.getByRole("heading", { name: "Comments" }));
-          const time = page.locator("li button").filter({ hasText: /^\d{1,2}:\d{2}$/ }).first();
-          const mark = await time.boundingBox();
-          await pointAt(time);
-          await zoom({ x: mark.x - 80, y: mark.y - 40, width: 560, height: 110 }, 1.8, () => pause(2400));
+          const field = page.getByPlaceholder("Add a comment");
+          const form = await field.boundingBox();
+          const posted = page.locator("li").filter({ hasText: process.env.TOUR_COMMENT });
+          const time = posted.locator("button").filter({ hasText: /^\d{1,2}:\d{2}$/ }).first();
+          await pointAt(field);
+          await field.click();
+          await zoom({ x: form.x - 40, y: form.y - 50, width: form.width + 80, height: 320 }, 1.5, async () => {
+            await page.keyboard.type(process.env.TOUR_COMMENT, { delay: 55 });
+            await pause(500);
+            const post = page.getByRole("button", { name: "Comment", exact: true });
+            await pointAt(post, 20);
+            await post.click();
+            await time.waitFor();
+            await pause(800);
+            moments.push(seconds());
+            await pointAt(time);
+            await pause(1600);
+          });
           await time.click();
           await pause(3400);
 
@@ -236,7 +257,8 @@ jobs:
           ].join(",");
           writeFileSync("filter.txt", filter);
           const total = Math.max(stopped, frames.at(-1).time + 0.1) - start + CLOSING;
-          writeFileSync("previews.txt", [1, ...windows.map((w) => (w.from + w.to) / 2), total - 1].map((time) => time.toFixed(2)).join("\n") + "\n");
+          const previews = [1, ...windows.map((w) => (w.from + w.to) / 2), ...moments.map((moment) => moment - start), total - 1].sort((a, b) => a - b);
+          writeFileSync("previews.txt", previews.map((time) => time.toFixed(2)).join("\n") + "\n");
           // The size of a JPEG frame, from its start-of-frame segment.
           const sizeOf = (jpeg) => {
             for (let at = 2; at < jpeg.length; at += 2 + jpeg.readUInt16BE(at + 2)) {
@@ -251,8 +273,8 @@ jobs:
       - name: Make the GIF
         run: ffmpeg -y -loglevel error -f concat -safe 0 -i tour.ffconcat -filter_complex "$(cat filter.txt)" tour.gif && ls -la tour.gif
 
-      # Still frames of the start and of the middle of each zoom, to check the tour without
-      # playing the GIF.
+      # Still frames of the start, of the middle of each zoom, and of the moments that the
+      # tour notes, to check the tour without playing the GIF.
       - name: Make the previews
         run: |
           mapfile -t times < previews.txt
