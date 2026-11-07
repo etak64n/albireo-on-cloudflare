@@ -65,7 +65,7 @@ export function Shell({ children, seriesId = null }: { children: ReactNode; seri
               <MenuIcon />
             </Button>
             <Link to="/" className="mr-1 shrink-0 rounded-xs lg:hidden">
-              <Logo alt={appearance.siteName} className="size-6" />
+              <Logo alt={appearance.siteName} className="size-8" />
             </Link>
             <SearchBox />
             <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -90,8 +90,8 @@ export function Shell({ children, seriesId = null }: { children: ReactNode; seri
 function Brand() {
   return (
     <Link to="/" className="flex min-w-0 items-center gap-2 rounded-xs py-1">
-      <Logo alt="" className="size-6 shrink-0" />
-      <span className="truncate text-sm font-semibold text-heading">{appearance.siteName}</span>
+      <Logo alt="" className="size-8 shrink-0" />
+      <span className="truncate text-base font-semibold text-heading">{appearance.siteName}</span>
     </Link>
   );
 }
