@@ -1,4 +1,4 @@
-import { ArrowRight, ChevronRight, History, House, KeyRound, Layers, LayoutGrid, ListVideo, LogOut, Menu as MenuIcon, Plus, Search, Settings, Upload, UserRound, X } from "lucide-react";
+import { ArrowRight, History, House, KeyRound, Layers, LayoutGrid, ListVideo, LogOut, Menu as MenuIcon, Plus, Search, Settings, Upload, UserRound, X } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import appearance from "virtual:albireo-appearance";
 import { SEARCH_QUERY_MAX_LENGTH, TITLE_MAX_LENGTH } from "../../shared/api.ts";
@@ -190,7 +190,7 @@ function AccountMenu() {
 }
 
 // Each group of the sidebar lists this many, the ones changed last, so the sidebar stays short
-// however many there are. The page of the group lists every one.
+// however many there are. Show all under them opens the page that lists every one.
 const SIDEBAR_ITEMS = 5;
 
 /** A row after the items of a group in the sidebar: an action, quieter than the pages. */
@@ -237,7 +237,6 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
       <SidebarGroup
         heading={t.common.series}
         listPath="/series"
-        allLabel={t.shell.allSeries}
         items={series}
         pathOf={(id) => `/series/${id}`}
         icon={<Layers />}
@@ -248,7 +247,6 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
       <SidebarGroup
         heading={t.common.playlists}
         listPath="/playlists"
-        allLabel={t.shell.allPlaylists}
         items={playlists}
         pathOf={(id) => `/playlists/${id}`}
         icon={<ListVideo />}
@@ -261,14 +259,13 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
 }
 
 /**
- * A group of the sidebar, the series or the playlists: a heading that opens the page that lists
- * them, the 5 changed last, a row that opens that page when there are more, and a last row that
- * opens a dialog for a new one.
+ * A group of the sidebar, the series or the playlists: the 5 changed last under its heading,
+ * Show all, which opens the page that lists every one, and a last row that opens a dialog for
+ * a new one.
  */
 function SidebarGroup({
   heading,
   listPath,
-  allLabel,
   items,
   pathOf,
   icon,
@@ -277,10 +274,8 @@ function SidebarGroup({
   create,
 }: {
   heading: string;
-  /** The page that lists them. */
+  /** The page that lists every one, which Show all opens. */
   listPath: string;
-  /** The row that opens the page when the sidebar shows only some of them. */
-  allLabel: string;
   /** Null until the library loads. */
   items: { id: string; title: string }[] | null;
   pathOf: (id: string) => string;
@@ -293,24 +288,11 @@ function SidebarGroup({
   const t = useT();
   const pathname = usePathname();
   const [creating, setCreating] = useState(false);
-  const hasMore = items !== null && items.length > SIDEBAR_ITEMS;
   const listed = items?.slice(0, SIDEBAR_ITEMS) ?? null;
 
   return (
     <div className="grid gap-1">
-      <h2 className="flex h-7 items-center text-xs">
-        <Link
-          to={listPath}
-          current={pathname === listPath}
-          className={cn(
-            "-mx-1 flex items-center gap-1 rounded-xs px-1 transition-colors duration-150 hover:text-strong [&_svg]:size-3",
-            pathname === listPath ? "font-semibold text-accent" : "text-subdued",
-          )}
-        >
-          {heading}
-          <ChevronRight aria-hidden="true" />
-        </Link>
-      </h2>
+      <h2 className="flex h-7 items-center text-xs text-subdued">{heading}</h2>
       {listed !== null && listed.length > 0 && (
         <nav className="-mx-1 grid gap-0.5" aria-label={heading}>
           {listed.map((item) => (
@@ -320,12 +302,10 @@ function SidebarGroup({
           ))}
         </nav>
       )}
-      {hasMore && (
-        <Link to={listPath} className={SIDEBAR_ACTION}>
-          <ArrowRight aria-hidden="true" />
-          <span className="truncate">{allLabel}</span>
-        </Link>
-      )}
+      <Link to={listPath} current={pathname === listPath} className={cn(SIDEBAR_ACTION, pathname === listPath && "font-semibold text-accent")}>
+        <ArrowRight aria-hidden="true" />
+        <span className="truncate">{t.shell.showAll}</span>
+      </Link>
       <button type="button" onClick={() => setCreating(true)} className={SIDEBAR_ACTION}>
         <Plus aria-hidden="true" />
         <span className="truncate">{newLabel}</span>
@@ -391,19 +371,17 @@ function NewItemForm({ titleLabel, create, onDone }: { titleLabel: string; creat
   const fieldId = useId();
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   async function submit() {
     setSaving(true);
-    setError("");
     try {
       const path = await create(title);
       await refresh();
       onDone();
       navigate(path);
-      toast(t.toast.created(title.trim()));
+      toast.success(t.toast.created(title.trim()));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
       setSaving(false);
     }
   }
@@ -420,7 +398,6 @@ function NewItemForm({ titleLabel, create, onDone }: { titleLabel: string; creat
         <Label htmlFor={fieldId}>{titleLabel}</Label>
         <Input id={fieldId} value={title} maxLength={TITLE_MAX_LENGTH} onChange={(e) => setTitle(e.target.value)} autoFocus />
       </div>
-      {error && <p className="error-box">{error}</p>}
       <div className="flex justify-end gap-2">
         <DialogClose asChild>
           <Button>{t.common.cancel}</Button>

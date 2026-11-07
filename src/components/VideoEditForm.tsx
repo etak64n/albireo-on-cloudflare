@@ -9,6 +9,7 @@ import { AddToPlaylist } from "./AddToPlaylist.tsx";
 import { Button, buttonVariants } from "./ui/button.tsx";
 import { Input, Label, Textarea } from "./ui/field.tsx";
 import { Select } from "./ui/select.tsx";
+import { useToast } from "./ui/toast.tsx";
 
 /**
  * The title and the description of a video on its page. Beside the title, Add to playlist puts
@@ -53,6 +54,7 @@ export function VideoEditForm({
   const [seriesList, setSeriesList] = useState<SeriesSummary[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const toast = useToast();
   const t = useT();
 
   // The list of series loads when the form opens, so the video page itself needs one request.
@@ -73,14 +75,13 @@ export function VideoEditForm({
 
   async function save() {
     setSaving(true);
-    setError("");
     const changes: UpdateVideoRequest = { title, description };
     const chosen = seriesId === "" ? null : seriesId;
     if (chosen !== (video.series?.id ?? null)) changes.seriesId = chosen;
     try {
       onSaved((await api.updateVideo(video.id, changes)).video);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
       setSaving(false);
     }
   }

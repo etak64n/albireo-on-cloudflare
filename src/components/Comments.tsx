@@ -89,7 +89,7 @@ export function Comments({
           if (deleting === null) return;
           await api.deleteComment(deleting.id);
           setComments((current) => (current ?? []).filter((comment) => comment.id !== deleting.id));
-          toast(t.toast.commentDeleted);
+          toast.success(t.toast.commentDeleted);
           setDeleting(null);
         }}
       >
@@ -105,17 +105,15 @@ function CommentForm({ videoId, onPosted }: { videoId: string; onPosted: (commen
   const toast = useToast();
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
-  const [error, setError] = useState("");
 
   async function post() {
     setPosting(true);
-    setError("");
     try {
       onPosted((await api.createComment(videoId, text)).comment);
       setText("");
-      toast(t.toast.commentPosted);
+      toast.success(t.toast.commentPosted);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setPosting(false);
     }
@@ -139,7 +137,6 @@ function CommentForm({ videoId, onPosted }: { videoId: string; onPosted: (commen
           placeholder={t.comments.placeholder}
           aria-label={t.comments.comment}
         />
-        {error && <p className="text-xs font-semibold text-critical">{error}</p>}
         <div className="flex justify-end">
           <Button type="submit" variant="primary" disabled={posting || text.trim() === ""}>
             {posting ? t.comments.posting : t.comments.comment}

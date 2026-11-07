@@ -87,16 +87,15 @@ function PlaylistChoices({ videoId }: { videoId: string }) {
 
   async function toggle(choice: PlaylistChoice) {
     setBusy(choice.id);
-    setError("");
     try {
       if (choice.hasVideo) await api.removeFromPlaylist(choice.id, videoId);
       else await api.addToPlaylist(choice.id, videoId);
       setChoices((current) => current?.map((item) => (item.id === choice.id ? { ...item, hasVideo: !choice.hasVideo } : item)) ?? null);
-      toast(choice.hasVideo ? t.toast.removedFrom(choice.title) : t.toast.addedTo(choice.title));
+      toast.success(choice.hasVideo ? t.toast.removedFrom(choice.title) : t.toast.addedTo(choice.title));
       // The playlist changed, which moves it up in the sidebar.
       void refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(null);
     }
@@ -104,17 +103,16 @@ function PlaylistChoices({ videoId }: { videoId: string }) {
 
   async function create() {
     setBusy("new");
-    setError("");
     try {
       const { playlist } = await api.createPlaylist({ title, description: "" });
       await api.addToPlaylist(playlist.id, videoId);
       setChoices((current) => [{ id: playlist.id, title: playlist.title, hasVideo: true }, ...(current ?? [])]);
-      toast(t.toast.addedTo(playlist.title));
+      toast.success(t.toast.addedTo(playlist.title));
       setTitle("");
       closeForm();
       void refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(null);
     }

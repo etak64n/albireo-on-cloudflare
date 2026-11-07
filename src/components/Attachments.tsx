@@ -20,7 +20,6 @@ import { useToast } from "./ui/toast.tsx";
 export function Attachments({ video, onChange }: { video: VideoDetail; onChange: (attachments: VideoAttachment[]) => void }) {
   const toast = useToast();
   const [uploading, setUploading] = useState<{ fileName: string; percent: number } | null>(null);
-  const [error, setError] = useState("");
   const [previewing, setPreviewing] = useState<VideoAttachment | null>(null);
   const [removing, setRemoving] = useState<VideoAttachment | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -29,9 +28,8 @@ export function Attachments({ video, onChange }: { video: VideoDetail; onChange:
   if (video.attachments.length === 0 && !video.canEdit) return null;
 
   async function attach(file: globalThis.File) {
-    setError("");
     if (file.size > ATTACHMENT_MAX_BYTES) {
-      setError(t.attachments.tooLarge(formatBytes(ATTACHMENT_MAX_BYTES)));
+      toast.error(t.attachments.tooLarge(formatBytes(ATTACHMENT_MAX_BYTES)));
       return;
     }
     setUploading({ fileName: file.name, percent: 0 });
@@ -42,9 +40,9 @@ export function Attachments({ video, onChange }: { video: VideoDetail; onChange:
       );
       const { attachment } = await api.commitAttachment(started.attachmentId);
       onChange([...video.attachments, attachment]);
-      toast(t.toast.attached(attachment.fileName));
+      toast.success(t.toast.attached(attachment.fileName));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setUploading(null);
     }
@@ -76,7 +74,6 @@ export function Attachments({ video, onChange }: { video: VideoDetail; onChange:
           {t.attachments.uploading(uploading.fileName, uploading.percent)}
         </p>
       )}
-      {error && <p className="error-box">{error}</p>}
       {video.attachments.length > 0 && (
         <ul className="grid divide-y divide-hairline border-y border-hairline">
           {video.attachments.map((attachment) => {
@@ -121,7 +118,7 @@ export function Attachments({ video, onChange }: { video: VideoDetail; onChange:
           if (removing === null) return;
           await api.removeAttachment(removing.id);
           onChange(video.attachments.filter((attachment) => attachment.id !== removing.id));
-          toast(t.toast.removedFile(removing.fileName));
+          toast.success(t.toast.removedFile(removing.fileName));
           setRemoving(null);
         }}
       >

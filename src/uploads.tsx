@@ -98,14 +98,18 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         update({ state: "done", progress: null });
         setCompleted((count) => count + 1);
         const messages = currentMessages();
-        toast(messages.toast.uploaded(video.title), { label: messages.toast.open, to: `/videos/${video.id}` });
+        toast.success(messages.toast.uploaded(video.title), { label: messages.toast.open, to: `/videos/${video.id}` });
         // A new episode can change the cover of its series.
         void refresh();
       },
       (err: unknown) => {
         running.current = null;
-        if (isCancellation(err)) setQueue((items) => items.filter((item) => item.id !== next.id));
-        else update({ state: "failed", progress: null, error: err instanceof Error ? err.message : String(err) });
+        if (isCancellation(err)) {
+          setQueue((items) => items.filter((item) => item.id !== next.id));
+          return;
+        }
+        update({ state: "failed", progress: null, error: err instanceof Error ? err.message : String(err) });
+        toast.error(currentMessages().toast.uploadFailed(next.file.name));
       },
     );
   }, [queue, refresh, toast]);

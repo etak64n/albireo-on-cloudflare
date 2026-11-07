@@ -33,7 +33,6 @@ export function SeriesPage({ id }: { id: string }) {
   const toast = useToast();
   const [series, setSeries] = useState<SeriesDetail | null>(null);
   const [error, setError] = useState<unknown>(null);
-  const [actionError, setActionError] = useState("");
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const { completed } = useUploads();
@@ -56,13 +55,12 @@ export function SeriesPage({ id }: { id: string }) {
   // Reordering and removing change the episodes, and the first one gives the series its cover.
   // Removing says so; a move shows in the table.
   async function change(action: Promise<{ series: SeriesDetail }>, done?: string) {
-    setActionError("");
     try {
       setSeries((await action).series);
-      if (done !== undefined) toast(done);
+      if (done !== undefined) toast.success(done);
       void refresh();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -85,7 +83,7 @@ export function SeriesPage({ id }: { id: string }) {
                 series={series}
                 onSaved={(saved) => {
                   setSeries(saved);
-                  toast(t.toast.saved);
+                  toast.success(t.toast.saved);
                   setEditing(false);
                   void refresh();
                 }}
@@ -119,7 +117,6 @@ export function SeriesPage({ id }: { id: string }) {
               </header>
             )}
           </div>
-          {actionError && <p className="error-box">{actionError}</p>}
           {series.episodes.length === 0 ? (
             <EmptyLibrary seriesId={series.id} />
           ) : (
@@ -137,7 +134,7 @@ export function SeriesPage({ id }: { id: string }) {
             onConfirm={async () => {
               await api.deleteSeries(series.id);
               await refresh();
-              toast(t.toast.deleted(series.title));
+              toast.success(t.toast.deleted(series.title));
               navigate("/series");
             }}
           >
@@ -325,16 +322,15 @@ function SeriesEditForm({
   const [title, setTitle] = useState(series.title);
   const [description, setDescription] = useState(series.description);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const toast = useToast();
   const t = useT();
 
   async function save() {
     setSaving(true);
-    setError("");
     try {
       onSaved((await api.updateSeries(series.id, { title, description })).series);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
       setSaving(false);
     }
   }
@@ -355,7 +351,6 @@ function SeriesEditForm({
         <Label htmlFor="series-description">{t.common.description}</Label>
         <Textarea id="series-description" value={description} maxLength={DESCRIPTION_MAX_LENGTH} onChange={(e) => setDescription(e.target.value)} rows={4} />
       </div>
-      {error && <p className="error-box">{error}</p>}
       <div className="flex gap-2">
         <Button type="submit" variant="primary" disabled={saving || title.trim() === ""}>
           {saving ? t.common.saving : t.common.save}

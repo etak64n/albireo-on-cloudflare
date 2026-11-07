@@ -34,10 +34,9 @@ History (`/history`) lists the videos that the person watched, from the last wat
 The player records a video when its playback starts, and each person sees only their own history (worker/app.ts).
 
 The sidebar on the left links to the three lists, to the upload page, to the series, and to the playlists of the signed-in person.
-The headings Series and Playlists open the pages that list every series (`/series`) and the playlists (`/playlists`).
-Under each heading, the sidebar lists the 5 changed last, a series by its episodes or its title and description, so it stays short however many there are. With more than 5, All series or All playlists under them opens the page that lists every one (src/components/Shell.tsx).
+Under the headings Series and Playlists, the sidebar lists the 5 changed last, a series by its episodes or its title and description, so it stays short however many there are. Show all under them opens the page that lists every series (`/series`) or the playlists (`/playlists`) (src/components/Shell.tsx).
 On screens narrower than 1024px, the sidebar hides, and the menu button in the upper left corner opens it over the page.
 Dates show as YYYY/MM/DD (src/lib/format.ts, `formatDate`).
 
-A change that you make shows a short message in the lower right corner for 5 seconds, or along the bottom of a narrow screen (src/components/ui/toast.tsx): an upload that finishes, with Open to go to the video, a save, a deletion, a new series or playlist, a video that joins or leaves a playlist or a series, an attachment, and a comment.
-Ratings and moves of videos up and down show in place, without a message.
+A change that you make shows a short message in the lower right corner, or along the bottom of a narrow screen (src/components/ui/toast.tsx): an upload that finishes, with Open to go to the video, a save, a deletion, a new series or playlist, a video that joins or leaves a playlist or a series, an attachment, and a comment.
+A success shows for 3 seconds with a green mark. A failure shows for 6 seconds with a red mark and the reason, also for a rating or a move. Ratings and moves of videos up and down that succeed show in place, without a message.

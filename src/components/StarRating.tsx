@@ -6,6 +6,7 @@ import { api } from "../api.ts";
 import { useT } from "../i18n.ts";
 import { cn } from "../lib/utils.ts";
 import { Button } from "./ui/button.tsx";
+import { useToast } from "./ui/toast.tsx";
 
 const STARS = Array.from({ length: RATING_MAX_STARS }, (_, index) => index + 1);
 
@@ -26,17 +27,16 @@ export function StarRating({
   // While the pointer is over a star, the stars up to it light up to show the rating that a click gives.
   const [hovered, setHovered] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const toast = useToast();
   const t = useT();
   const lit = hovered ?? rating.mine ?? 0;
 
   async function save(change: () => Promise<RatingResponse>) {
     setSaving(true);
-    setError("");
     try {
       onRated((await change()).rating);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
@@ -80,7 +80,6 @@ export function StarRating({
           </Button>
         )}
       </div>
-      {error && <p className="text-xs font-semibold text-critical">{error}</p>}
     </div>
   );
 }

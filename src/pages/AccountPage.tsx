@@ -108,17 +108,15 @@ function PreferencesSection() {
   const toast = useToast();
   const t = useT();
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   async function choose(language: Language) {
     setSaving(true);
-    setError("");
     try {
       setMe((await api.updateMe({ language })).me);
       // The message comes in the language just chosen.
-      toast(currentMessages().toast.saved);
+      toast.success(currentMessages().toast.saved);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
@@ -144,7 +142,6 @@ function PreferencesSection() {
           },
         ]}
       />
-      {error && <p className="error-box">{error}</p>}
     </Section>
   );
 }

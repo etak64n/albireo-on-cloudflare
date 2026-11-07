@@ -27,7 +27,6 @@ export function ChannelSettingsPage() {
   const [picture, setPicture] = useState<PictureChange>({ kind: "keep" });
   const [cropping, setCropping] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
   const t = useT();
@@ -44,10 +43,9 @@ export function ChannelSettingsPage() {
     event.target.value = "";
     if (file === undefined) return;
     if (!file.type.startsWith("image/")) {
-      setError(t.channel.notPicture);
+      toast.error(t.channel.notPicture);
       return;
     }
-    setError("");
     setCropping(URL.createObjectURL(file));
   }
 
@@ -58,7 +56,6 @@ export function ChannelSettingsPage() {
 
   async function save() {
     setSaving(true);
-    setError("");
     try {
       let current = me;
       if (picture.kind === "replace") {
@@ -78,9 +75,9 @@ export function ChannelSettingsPage() {
       }
       setMe(current);
       setPicture({ kind: "keep" });
-      toast(t.toast.saved);
+      toast.success(t.toast.saved);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
@@ -123,7 +120,6 @@ export function ChannelSettingsPage() {
             onChange={(e) => setBio(e.target.value)}
           />
         </div>
-        {error && <p className="error-box">{error}</p>}
         <div className="flex items-center gap-3">
           <Button variant="primary" onClick={() => void save()} disabled={saving || !changed || displayName.trim() === ""}>
             {saving ? t.common.saving : t.common.save}
@@ -138,7 +134,7 @@ export function ChannelSettingsPage() {
           closeCropper();
         }}
         onError={(message) => {
-          setError(message);
+          toast.error(message);
           closeCropper();
         }}
       />

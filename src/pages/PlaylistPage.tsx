@@ -34,7 +34,6 @@ export function PlaylistPage({ id }: { id: string }) {
   const toast = useToast();
   const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null);
   const [error, setError] = useState<unknown>(null);
-  const [actionError, setActionError] = useState("");
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const t = useT();
@@ -58,13 +57,12 @@ export function PlaylistPage({ id }: { id: string }) {
   // Reordering and removing change the videos, and the first one gives the playlist its cover.
   // Removing says so; a move shows in the table.
   async function change(action: Promise<PlaylistResponse>, done?: string) {
-    setActionError("");
     try {
       setPlaylist((await action).playlist);
-      if (done !== undefined) toast(done);
+      if (done !== undefined) toast.success(done);
       void refresh();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
     }
   }
 
@@ -87,7 +85,7 @@ export function PlaylistPage({ id }: { id: string }) {
                 playlist={playlist}
                 onSaved={(saved) => {
                   setPlaylist(saved);
-                  toast(t.toast.saved);
+                  toast.success(t.toast.saved);
                   setEditing(false);
                   void refresh();
                 }}
@@ -127,7 +125,6 @@ export function PlaylistPage({ id }: { id: string }) {
               </header>
             )}
           </div>
-          {actionError && <p className="error-box">{actionError}</p>}
           <PlaylistTable
             playlist={playlist}
             onMove={(video, direction) => void change(api.movePlaylistVideo(playlist.id, video.id, direction))}
@@ -141,7 +138,7 @@ export function PlaylistPage({ id }: { id: string }) {
             onConfirm={async () => {
               await api.deletePlaylist(playlist.id);
               await refresh();
-              toast(t.toast.deleted(playlist.title));
+              toast.success(t.toast.deleted(playlist.title));
               navigate("/playlists");
             }}
           >
@@ -317,16 +314,15 @@ function PlaylistEditForm({
   const [title, setTitle] = useState(playlist.title);
   const [description, setDescription] = useState(playlist.description);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const toast = useToast();
   const t = useT();
 
   async function save() {
     setSaving(true);
-    setError("");
     try {
       onSaved((await api.updatePlaylist(playlist.id, { title, description })).playlist);
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      toast.error(err instanceof Error ? err.message : String(err));
       setSaving(false);
     }
   }
@@ -347,7 +343,6 @@ function PlaylistEditForm({
         <Label htmlFor="playlist-description">{t.common.description}</Label>
         <Textarea id="playlist-description" value={description} maxLength={DESCRIPTION_MAX_LENGTH} onChange={(e) => setDescription(e.target.value)} rows={4} />
       </div>
-      {error && <p className="error-box">{error}</p>}
       <div className="flex gap-2">
         <Button type="submit" variant="primary" disabled={saving || title.trim() === ""}>
           {saving ? t.common.saving : t.common.save}

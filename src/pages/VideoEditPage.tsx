@@ -65,7 +65,7 @@ export function VideoEditPage({ id }: { id: string }) {
           <VideoEditForm
             video={video}
             onSaved={() => {
-              toast(t.toast.saved);
+              toast.success(t.toast.saved);
               back();
             }}
             onCancel={back}
@@ -78,7 +78,7 @@ export function VideoEditPage({ id }: { id: string }) {
             onConfirm={async () => {
               await api.deleteVideo(video.id);
               forgetDeletedVideo(video.id);
-              toast(t.toast.deleted(video.title));
+              toast.success(t.toast.deleted(video.title));
               // The series of the video changed, which moves it up in the sidebar.
               if (video.series !== null) await refresh();
               navigate("/videos");
