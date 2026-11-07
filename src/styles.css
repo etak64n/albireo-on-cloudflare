@@ -102,11 +102,12 @@ body {
   }
 }
 
-/* The Video.js player takes the theme: its corners, the accent for the bars and the
-   highlighted controls, and the font. The whole picture shows, with bars around a
-   video of another shape. The skin reads only these public variables. */
+/* The Video.js player takes the accent of the theme for the bars and the highlighted
+   controls, and its font. The picture keeps square corners, as a video does. The whole
+   picture shows, with bars around a video of another shape. The skin reads only these
+   public variables. */
 .albireo-player {
-  --media-border-radius: var(--theme-radius-md);
+  --media-border-radius: 0;
   --media-accent-color: var(--theme-accent);
   --media-font-family: var(--theme-font);
   --media-object-fit: contain;
@@ -115,9 +116,8 @@ body {
   aspect-ratio: 16 / 9;
 }
 
-/* The skin draws a thin white line around the player. Where the rounded corners cut a
-   light picture, its edge shows through the shade of the controls, and the white line
-   makes it a light line along the bottom. A dark line hides it. */
+/* The skin draws a thin white line around the player. Over the shade of the controls,
+   it shows as a light line along the bottom. A dark line hides it. */
 .albireo-player.media-skin::after {
   border-color: rgb(0 0 0 / 0.5);
 }
