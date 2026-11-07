@@ -12,6 +12,7 @@ import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { LoadMore } from "./LoadMore.tsx";
 import { Section } from "./Page.tsx";
 import { Button } from "./ui/button.tsx";
+import { useToast } from "./ui/toast.tsx";
 import { Textarea } from "./ui/field.tsx";
 
 /**
@@ -33,6 +34,7 @@ export function Comments({
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState<VideoComment | null>(null);
   const t = useT();
+  const toast = useToast();
 
   const load = useCallback(
     async (cursor: string | null) => {
@@ -87,6 +89,7 @@ export function Comments({
           if (deleting === null) return;
           await api.deleteComment(deleting.id);
           setComments((current) => (current ?? []).filter((comment) => comment.id !== deleting.id));
+          toast(t.toast.commentDeleted);
           setDeleting(null);
         }}
       >
@@ -99,6 +102,7 @@ export function Comments({
 function CommentForm({ videoId, onPosted }: { videoId: string; onPosted: (comment: VideoComment) => void }) {
   const { me } = useSession();
   const t = useT();
+  const toast = useToast();
   const [text, setText] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
@@ -109,6 +113,7 @@ function CommentForm({ videoId, onPosted }: { videoId: string; onPosted: (commen
     try {
       onPosted((await api.createComment(videoId, text)).comment);
       setText("");
+      toast(t.toast.commentPosted);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

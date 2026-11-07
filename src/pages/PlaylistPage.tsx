@@ -11,6 +11,7 @@ import { Button } from "../components/ui/button.tsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.tsx";
 import { Input, Label, Textarea } from "../components/ui/field.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
+import { useToast } from "../components/ui/toast.tsx";
 import { useT } from "../i18n.ts";
 import { formatDate, formatDuration } from "../lib/format.ts";
 import { usePageTitle } from "../lib/title.ts";
@@ -30,6 +31,7 @@ export function playlistVideoPath(videoId: string, playlistId: string): string {
  */
 export function PlaylistPage({ id }: { id: string }) {
   const { refresh } = useLibrary();
+  const toast = useToast();
   const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [actionError, setActionError] = useState("");
@@ -54,10 +56,12 @@ export function PlaylistPage({ id }: { id: string }) {
   }, [id]);
 
   // Reordering and removing change the videos, and the first one gives the playlist its cover.
-  async function change(action: Promise<PlaylistResponse>) {
+  // Removing says so; a move shows in the table.
+  async function change(action: Promise<PlaylistResponse>, done?: string) {
     setActionError("");
     try {
       setPlaylist((await action).playlist);
+      if (done !== undefined) toast(done);
       void refresh();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : String(err));
@@ -83,6 +87,7 @@ export function PlaylistPage({ id }: { id: string }) {
                 playlist={playlist}
                 onSaved={(saved) => {
                   setPlaylist(saved);
+                  toast(t.toast.saved);
                   setEditing(false);
                   void refresh();
                 }}
@@ -126,7 +131,7 @@ export function PlaylistPage({ id }: { id: string }) {
           <PlaylistTable
             playlist={playlist}
             onMove={(video, direction) => void change(api.movePlaylistVideo(playlist.id, video.id, direction))}
-            onRemove={(video) => void change(api.removeFromPlaylist(playlist.id, video.id))}
+            onRemove={(video) => void change(api.removeFromPlaylist(playlist.id, video.id), t.toast.removedFrom(playlist.title))}
           />
           <ConfirmDialog
             open={deleting}
@@ -136,6 +141,7 @@ export function PlaylistPage({ id }: { id: string }) {
             onConfirm={async () => {
               await api.deletePlaylist(playlist.id);
               await refresh();
+              toast(t.toast.deleted(playlist.title));
               navigate("/playlists");
             }}
           >

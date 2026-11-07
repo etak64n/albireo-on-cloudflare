@@ -14,6 +14,7 @@ import { Button } from "./ui/button.tsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu.tsx";
 import { Input } from "./ui/field.tsx";
 import { Sheet, SheetClose, SheetContent } from "./ui/sheet.tsx";
+import { useToast } from "./ui/toast.tsx";
 import { DropOverlay, UploadPanel } from "./VideoUpload.tsx";
 
 /**
@@ -356,6 +357,7 @@ function NavLink({ to, current, icon, children }: { to: string; current: boolean
 /** Makes a series or a playlist from its title and opens its page. The page edits the description. */
 function NewItemForm({ titleLabel, create, onDone }: { titleLabel: string; create: (title: string) => Promise<string>; onDone: () => void }) {
   const { refresh } = useLibrary();
+  const toast = useToast();
   const t = useT();
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
@@ -369,6 +371,7 @@ function NewItemForm({ titleLabel, create, onDone }: { titleLabel: string; creat
       await refresh();
       onDone();
       navigate(path);
+      toast(t.toast.created(title.trim()));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setSaving(false);

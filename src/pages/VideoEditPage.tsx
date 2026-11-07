@@ -6,6 +6,7 @@ import { Breadcrumb, PageHeader } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
+import { useToast } from "../components/ui/toast.tsx";
 import { VideoEditForm } from "../components/VideoEditForm.tsx";
 import { useT } from "../i18n.ts";
 import { usePageTitle } from "../lib/title.ts";
@@ -25,6 +26,7 @@ export function VideoEditPage({ id }: { id: string }) {
   const [error, setError] = useState<unknown>(null);
   const [deleting, setDeleting] = useState(false);
   const { refresh } = useLibrary();
+  const toast = useToast();
   const t = useT();
   usePageTitle(video === null ? null : t.video.editVideo);
 
@@ -60,7 +62,14 @@ export function VideoEditPage({ id }: { id: string }) {
         <div className="grid gap-6">
           <Breadcrumb to={`/videos/${video.id}`}>{video.title}</Breadcrumb>
           <PageHeader title={t.video.editVideo} actions={<Button onClick={() => setDeleting(true)}>{t.common.delete}</Button>} />
-          <VideoEditForm video={video} onSaved={back} onCancel={back} />
+          <VideoEditForm
+            video={video}
+            onSaved={() => {
+              toast(t.toast.saved);
+              back();
+            }}
+            onCancel={back}
+          />
           <ConfirmDialog
             open={deleting}
             title={t.video.deleteQuestion}
@@ -69,6 +78,7 @@ export function VideoEditPage({ id }: { id: string }) {
             onConfirm={async () => {
               await api.deleteVideo(video.id);
               forgetDeletedVideo(video.id);
+              toast(t.toast.deleted(video.title));
               // The series of the video changed, which moves it up in the sidebar.
               if (video.series !== null) await refresh();
               navigate("/videos");

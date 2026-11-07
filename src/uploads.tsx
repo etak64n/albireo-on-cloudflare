@@ -5,6 +5,7 @@
 // and a video that fails leaves the next one to start.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useToast } from "./components/ui/toast.tsx";
 import { currentMessages } from "./i18n.ts";
 import { isCancellation, startUpload, type UploadProgress, type UploadTask } from "./lib/upload.ts";
 import { inNameOrder, isVideo } from "./lib/upload-queue.ts";
@@ -56,6 +57,7 @@ const UploadsContext = createContext<Uploads | null>(null);
 
 export function UploadsProvider({ children }: { children: ReactNode }) {
   const { refresh } = useLibrary();
+  const toast = useToast();
   const [queue, setQueue] = useState<QueuedUpload[]>([]);
   const [notice, setNotice] = useState("");
   const [dragging, setDragging] = useState(false);
@@ -91,10 +93,12 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
     running.current = { id: next.id, task };
     update({ state: "uploading" });
     task.done.then(
-      () => {
+      (video) => {
         running.current = null;
         update({ state: "done", progress: null });
         setCompleted((count) => count + 1);
+        const messages = currentMessages();
+        toast(messages.toast.uploaded(video.title), { label: messages.toast.open, to: `/videos/${video.id}` });
         // A new episode can change the cover of its series.
         void refresh();
       },
@@ -104,7 +108,7 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
         else update({ state: "failed", progress: null, error: err instanceof Error ? err.message : String(err) });
       },
     );
-  }, [queue, refresh]);
+  }, [queue, refresh, toast]);
 
   // Videos dropped anywhere on the page join the queue.
   useEffect(() => {

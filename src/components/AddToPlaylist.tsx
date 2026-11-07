@@ -8,6 +8,7 @@ import { Button } from "./ui/button.tsx";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "./ui/dialog.tsx";
 import { Input } from "./ui/field.tsx";
 import { SEARCH_ABOVE, searchable } from "./ui/select.tsx";
+import { useToast } from "./ui/toast.tsx";
 import { Skeleton } from "./ui/skeleton.tsx";
 
 /**
@@ -45,6 +46,7 @@ export function AddToPlaylist({ videoId }: { videoId: string }) {
 /** The playlists of the signed-in person, from the one changed last, and the row for a new one. */
 function PlaylistChoices({ videoId }: { videoId: string }) {
   const { refresh } = useLibrary();
+  const toast = useToast();
   const t = useT();
   const [choices, setChoices] = useState<PlaylistChoice[] | null>(null);
   // The playlist that changes now, or "new" while a new playlist is made. The boxes wait for it.
@@ -90,6 +92,7 @@ function PlaylistChoices({ videoId }: { videoId: string }) {
       if (choice.hasVideo) await api.removeFromPlaylist(choice.id, videoId);
       else await api.addToPlaylist(choice.id, videoId);
       setChoices((current) => current?.map((item) => (item.id === choice.id ? { ...item, hasVideo: !choice.hasVideo } : item)) ?? null);
+      toast(choice.hasVideo ? t.toast.removedFrom(choice.title) : t.toast.addedTo(choice.title));
       // The playlist changed, which moves it up in the sidebar.
       void refresh();
     } catch (err) {
@@ -106,6 +109,7 @@ function PlaylistChoices({ videoId }: { videoId: string }) {
       const { playlist } = await api.createPlaylist({ title, description: "" });
       await api.addToPlaylist(playlist.id, videoId);
       setChoices((current) => [{ id: playlist.id, title: playlist.title, hasVideo: true }, ...(current ?? [])]);
+      toast(t.toast.addedTo(playlist.title));
       setTitle("");
       closeForm();
       void refresh();

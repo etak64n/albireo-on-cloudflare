@@ -1,4 +1,5 @@
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
+import { ToastProvider } from "./components/ui/toast.tsx";
 import { LibraryProvider } from "./library.tsx";
 import { AccountPage } from "./pages/AccountPage.tsx";
 import { AllPlaylistsPage } from "./pages/AllPlaylistsPage.tsx";
@@ -24,13 +25,15 @@ export function App() {
   const pathname = usePathname();
   return (
     <SessionProvider>
-      <LibraryProvider>
-        <UploadsProvider>
-          <ErrorBoundary key={pathname}>
-            <Page />
-          </ErrorBoundary>
-        </UploadsProvider>
-      </LibraryProvider>
+      <ToastProvider>
+        <LibraryProvider>
+          <UploadsProvider>
+            <ErrorBoundary key={pathname}>
+              <Page />
+            </ErrorBoundary>
+          </UploadsProvider>
+        </LibraryProvider>
+      </ToastProvider>
     </SessionProvider>
   );
 }

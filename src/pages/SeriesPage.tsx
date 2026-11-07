@@ -13,6 +13,7 @@ import { UploadButton } from "../components/VideoUpload.tsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.tsx";
 import { Input, Label, Textarea } from "../components/ui/field.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
+import { useToast } from "../components/ui/toast.tsx";
 import { useT } from "../i18n.ts";
 import { formatDate, formatDuration } from "../lib/format.ts";
 import { usePageTitle } from "../lib/title.ts";
@@ -29,6 +30,7 @@ import { NotFoundPage } from "./NotFoundPage.tsx";
  */
 export function SeriesPage({ id }: { id: string }) {
   const { refresh } = useLibrary();
+  const toast = useToast();
   const [series, setSeries] = useState<SeriesDetail | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [actionError, setActionError] = useState("");
@@ -52,10 +54,12 @@ export function SeriesPage({ id }: { id: string }) {
   }, [load, completed]);
 
   // Reordering and removing change the episodes, and the first one gives the series its cover.
-  async function change(action: Promise<{ series: SeriesDetail }>) {
+  // Removing says so; a move shows in the table.
+  async function change(action: Promise<{ series: SeriesDetail }>, done?: string) {
     setActionError("");
     try {
       setSeries((await action).series);
+      if (done !== undefined) toast(done);
       void refresh();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : String(err));
@@ -81,6 +85,7 @@ export function SeriesPage({ id }: { id: string }) {
                 series={series}
                 onSaved={(saved) => {
                   setSeries(saved);
+                  toast(t.toast.saved);
                   setEditing(false);
                   void refresh();
                 }}
@@ -121,7 +126,7 @@ export function SeriesPage({ id }: { id: string }) {
             <EpisodeTable
               series={series}
               onMove={(episode, direction) => void change(api.moveEpisode(series.id, episode.id, direction))}
-              onRemove={(episode) => void change(api.removeEpisode(series.id, episode.id))}
+              onRemove={(episode) => void change(api.removeEpisode(series.id, episode.id), t.toast.removedFrom(series.title))}
             />
           )}
           <ConfirmDialog
@@ -132,6 +137,7 @@ export function SeriesPage({ id }: { id: string }) {
             onConfirm={async () => {
               await api.deleteSeries(series.id);
               await refresh();
+              toast(t.toast.deleted(series.title));
               navigate("/series");
             }}
           >

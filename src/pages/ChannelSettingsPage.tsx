@@ -10,6 +10,7 @@ import { Button } from "../components/ui/button.tsx";
 import { Dialog, DialogContent, DialogTitle } from "../components/ui/dialog.tsx";
 import { Input, Label, Textarea } from "../components/ui/field.tsx";
 import { Slider } from "../components/ui/slider.tsx";
+import { useToast } from "../components/ui/toast.tsx";
 import { useT } from "../i18n.ts";
 import { cropToJpeg, type CropArea } from "../lib/image.ts";
 import { usePageTitle } from "../lib/title.ts";
@@ -26,8 +27,8 @@ export function ChannelSettingsPage() {
   const [picture, setPicture] = useState<PictureChange>({ kind: "keep" });
   const [cropping, setCropping] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+  const toast = useToast();
   const input = useRef<HTMLInputElement>(null);
   const t = useT();
   usePageTitle(t.common.channelSettings);
@@ -77,7 +78,7 @@ export function ChannelSettingsPage() {
       }
       setMe(current);
       setPicture({ kind: "keep" });
-      setSaved(true);
+      toast(t.toast.saved);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -109,10 +110,7 @@ export function ChannelSettingsPage() {
             id="display-name"
             value={displayName}
             maxLength={DISPLAY_NAME_MAX_LENGTH}
-            onChange={(e) => {
-              setDisplayName(e.target.value);
-              setSaved(false);
-            }}
+            onChange={(e) => setDisplayName(e.target.value)}
           />
         </div>
         <div className="grid gap-1.5">
@@ -122,10 +120,7 @@ export function ChannelSettingsPage() {
             value={bio}
             maxLength={BIO_MAX_LENGTH}
             rows={4}
-            onChange={(e) => {
-              setBio(e.target.value);
-              setSaved(false);
-            }}
+            onChange={(e) => setBio(e.target.value)}
           />
         </div>
         {error && <p className="error-box">{error}</p>}
@@ -133,7 +128,6 @@ export function ChannelSettingsPage() {
           <Button variant="primary" onClick={() => void save()} disabled={saving || !changed || displayName.trim() === ""}>
             {saving ? t.common.saving : t.common.save}
           </Button>
-          {saved && !changed && <span className="text-sm text-positive">{t.channel.saved}</span>}
         </div>
       </div>
       <PictureCropper
@@ -141,7 +135,6 @@ export function ChannelSettingsPage() {
         onCancel={closeCropper}
         onCropped={(image) => {
           setPicture({ kind: "replace", image, preview: URL.createObjectURL(image) });
-          setSaved(false);
           closeCropper();
         }}
         onError={(message) => {

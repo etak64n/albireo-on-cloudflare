@@ -11,12 +11,14 @@ import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { DownloadButton } from "./DownloadButton.tsx";
 import { Section } from "./Page.tsx";
 import { Button } from "./ui/button.tsx";
+import { useToast } from "./ui/toast.tsx";
 
 /**
  * The files that go with a video, such as its slides or notes. Everyone can preview and
  * download them; the uploader of the video and admins attach and remove them.
  */
 export function Attachments({ video, onChange }: { video: VideoDetail; onChange: (attachments: VideoAttachment[]) => void }) {
+  const toast = useToast();
   const [uploading, setUploading] = useState<{ fileName: string; percent: number } | null>(null);
   const [error, setError] = useState("");
   const [previewing, setPreviewing] = useState<VideoAttachment | null>(null);
@@ -40,6 +42,7 @@ export function Attachments({ video, onChange }: { video: VideoDetail; onChange:
       );
       const { attachment } = await api.commitAttachment(started.attachmentId);
       onChange([...video.attachments, attachment]);
+      toast(t.toast.attached(attachment.fileName));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -118,6 +121,7 @@ export function Attachments({ video, onChange }: { video: VideoDetail; onChange:
           if (removing === null) return;
           await api.removeAttachment(removing.id);
           onChange(video.attachments.filter((attachment) => attachment.id !== removing.id));
+          toast(t.toast.removedFile(removing.fileName));
           setRemoving(null);
         }}
       >

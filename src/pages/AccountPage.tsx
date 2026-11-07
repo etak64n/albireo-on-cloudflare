@@ -6,7 +6,8 @@ import { Shell } from "../components/Shell.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { Select } from "../components/ui/select.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
-import { LANGUAGE_NAMES, useLanguage, useT, type Messages } from "../i18n.ts";
+import { useToast } from "../components/ui/toast.tsx";
+import { currentMessages, LANGUAGE_NAMES, useLanguage, useT, type Messages } from "../i18n.ts";
 import { formatDate, formatDateTime } from "../lib/format.ts";
 import { usePageTitle } from "../lib/title.ts";
 import { logOut, useSession } from "../session.tsx";
@@ -104,6 +105,7 @@ export function AccountPage() {
 /** The language of the app. A choice saves at once, and the whole app switches to it. */
 function PreferencesSection() {
   const { me, setMe } = useSession();
+  const toast = useToast();
   const t = useT();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -113,6 +115,8 @@ function PreferencesSection() {
     setError("");
     try {
       setMe((await api.updateMe({ language })).me);
+      // The message comes in the language just chosen.
+      toast(currentMessages().toast.saved);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

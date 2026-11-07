@@ -38,3 +38,6 @@ The headings Series and Playlists open the pages that list every series (`/serie
 Under each heading, the sidebar lists the 5 changed last, a series by its episodes or its title and description, so it stays short however many there are. With more than 5, All series or All playlists under them opens the page that lists every one (src/components/Shell.tsx).
 On screens narrower than 1024px, the sidebar hides, and the menu button in the upper left corner opens it over the page.
 Dates show as YYYY/MM/DD (src/lib/format.ts, `formatDate`).
+
+A change that you make shows a short message in the lower right corner for 5 seconds, or along the bottom of a narrow screen (src/components/ui/toast.tsx): an upload that finishes, with Open to go to the video, a save, a deletion, a new series or playlist, a video that joins or leaves a playlist or a series, an attachment, and a comment.
+Ratings and moves of videos up and down show in place, without a message.
