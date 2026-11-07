@@ -28,6 +28,7 @@ export default defineConfig({
             "guides/home-and-lists",
             "guides/search",
             "guides/series",
+            "guides/playlists",
             "guides/play",
             "guides/ratings-and-comments",
             "guides/attachments",

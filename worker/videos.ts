@@ -72,6 +72,9 @@ export interface RatingCursor {
 /** A ready video with the last time that one person watched it. */
 export type WatchedVideoRecord = VideoRecord & { watchedAt: string };
 
+/** A ready video of a playlist with its place there, which orders the playlist from 1. */
+export type PlaylistVideoRecord = VideoRecord & { playlistPosition: number };
+
 /** Narrows a list of videos. */
 export interface ListFilter {
   uploaderId: string | null;
@@ -295,6 +298,19 @@ export class VideoRepository {
     return results.map(toRecord);
   }
 
+  /** The ready videos of a playlist, in their order. */
+  async listInPlaylist(playlistId: string): Promise<PlaylistVideoRecord[]> {
+    const { results } = await this.#db
+      .prepare(
+        `${SELECT.replace("FROM videos v", "FROM playlist_videos pv JOIN videos v ON v.id = pv.video_id")
+          .replace("SELECT ", "SELECT pv.position AS playlist_position, ")} `
+          + "WHERE pv.playlist_id = ? AND v.status = 'ready' ORDER BY pv.position, pv.video_id",
+      )
+      .bind(playlistId)
+      .all<VideoRow & { playlist_position: number }>();
+    return results.map((row) => ({ ...toRecord(row), playlistPosition: row.playlist_position }));
+  }
+
   /**
    * Takes every video of a series out of it, the ones that still upload included, so the
    * series can go. The videos stay in the library.
@@ -376,13 +392,13 @@ export class VideoRepository {
   }
 
   /**
-   * Deletes a video and every row that points at it: its places in the histories, its
-   * comments, its ratings, and its attachments. The trigger of the search index deletes
-   * its entry. One batch, so D1 deletes all of the rows or none of them.
+   * Deletes a video and every row that points at it: its places in the histories and the
+   * playlists, its comments, its ratings, and its attachments. The trigger of the search
+   * index deletes its entry. One batch, so D1 deletes all of the rows or none of them.
    */
   async delete(id: string): Promise<boolean> {
     const results = await this.#db.batch([
-      ...["watch_history", "comments", "ratings", "attachments"].map((table) =>
+      ...["watch_history", "playlist_videos", "comments", "ratings", "attachments"].map((table) =>
         this.#db.prepare(`DELETE FROM ${table} WHERE video_id = ?`).bind(id),
       ),
       this.#db.prepare("DELETE FROM videos WHERE id = ?").bind(id),

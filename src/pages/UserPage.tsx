@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import type { SeriesSummary, UserProfile, VideoSummary } from "../../shared/api.ts";
+import type { PlaylistSummary, SeriesSummary, UserProfile, VideoSummary } from "../../shared/api.ts";
 import { ApiError, api } from "../api.ts";
 import { Avatar } from "../components/Avatar.tsx";
 import { LoadMore } from "../components/LoadMore.tsx";
 import { Section } from "../components/Page.tsx";
-import { SeriesGrid } from "../components/SeriesGrid.tsx";
+import { PlaylistGrid, SeriesGrid } from "../components/SeriesGrid.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 import { VideoGrid, VideoGridSkeleton } from "../components/VideoGrid.tsx";
@@ -16,12 +16,13 @@ import { useUploads } from "../uploads.tsx";
 import { NotFoundPage } from "./NotFoundPage.tsx";
 import { Button } from "../components/ui/button.tsx";
 
-/** The channel of one person: their picture, name, and bio, and the series and videos that they made. */
+/** The channel of one person: their picture, name, and bio, and the series, playlists, and videos that they made. */
 export function UserPage({ id }: { id: string }) {
   const { me } = useSession();
   const t = useT();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [series, setSeries] = useState<SeriesSummary[]>([]);
+  const [playlists, setPlaylists] = useState<PlaylistSummary[]>([]);
   const [videos, setVideos] = useState<VideoSummary[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -31,9 +32,15 @@ export function UserPage({ id }: { id: string }) {
 
   const load = useCallback(async () => {
     try {
-      const [loaded, theirSeries, page] = await Promise.all([api.getUser(id), api.listSeries(id), api.listVideos(null, id)]);
+      const [loaded, theirSeries, theirPlaylists, page] = await Promise.all([
+        api.getUser(id),
+        api.listSeries(id),
+        api.listPlaylists(id),
+        api.listVideos(null, id),
+      ]);
       setUser(loaded.user);
       setSeries(theirSeries.series);
+      setPlaylists(theirPlaylists.playlists);
       setVideos(page.videos);
       setNextCursor(page.nextCursor);
     } catch (err) {
@@ -94,6 +101,11 @@ export function UserPage({ id }: { id: string }) {
           {series.length > 0 && (
             <Section title={t.common.series}>
               <SeriesGrid series={series} />
+            </Section>
+          )}
+          {playlists.length > 0 && (
+            <Section title={t.common.playlists}>
+              <PlaylistGrid playlists={playlists} />
             </Section>
           )}
           {videos.length > 0 && (

@@ -8,10 +8,13 @@ import type {
   HistoryResponse,
   ImageUploadResponse,
   ListCommentsResponse,
+  ListPlaylistsResponse,
   ListSeriesResponse,
   ListVideosResponse,
   MeResponse,
   PartUrlsResponse,
+  PlaylistChoicesResponse,
+  PlaylistResponse,
   RandomVideosResponse,
   RatingResponse,
   RecommendationsResponse,
@@ -77,6 +80,12 @@ async function createSeries(app: TestApp, title: string, email = VIEWER_EMAIL): 
   const response = await app.requestAs(email, "/api/series", json({ title, description: "" }));
   expect(response.status).toBe(201);
   return body<SeriesResponse>(response);
+}
+
+async function createPlaylist(app: TestApp, title: string, email = VIEWER_EMAIL): Promise<PlaylistResponse> {
+  const response = await app.requestAs(email, "/api/playlists", json({ title, description: "" }));
+  expect(response.status).toBe(201);
+  return body<PlaylistResponse>(response);
 }
 
 async function episodeTitles(app: TestApp, seriesId: string): Promise<string[]> {
@@ -759,7 +768,7 @@ describe("deleting videos", () => {
   const remove = (app: TestApp, email: string, videoId: string) => app.requestAs(email, `/api/videos/${videoId}`, { method: "DELETE" });
   const rowsOf = async (app: TestApp, videoId: string) => {
     const counts: Record<string, unknown> = {};
-    for (const table of ["watch_history", "comments", "ratings", "attachments", "video_search"]) {
+    for (const table of ["watch_history", "playlist_videos", "comments", "ratings", "attachments", "video_search"]) {
       counts[table] = (await app.env.DB.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE video_id = ?`).bind(videoId).first())?.["n"];
     }
     return counts;
@@ -781,7 +790,11 @@ describe("deleting videos", () => {
     await app.requestAs(OTHER_EMAIL, `/api/videos/${video.id}/comments`, json({ body: "Thanks" }));
     await app.requestAs(OTHER_EMAIL, `/api/videos/${video.id}/rating`, json({ stars: 4 }, "PUT"));
     await app.requestAs(OTHER_EMAIL, `/api/videos/${video.id}/watched`, { method: "POST" });
-    expect(await rowsOf(app, video.id)).toEqual({ watch_history: 1, comments: 1, ratings: 1, attachments: 1, video_search: 1 });
+    const { playlist } = await createPlaylist(app, "Keep", OTHER_EMAIL);
+    await app.requestAs(OTHER_EMAIL, `/api/playlists/${playlist.id}/videos`, json({ videoId: video.id }));
+    expect(await rowsOf(app, video.id)).toEqual({
+      watch_history: 1, playlist_videos: 1, comments: 1, ratings: 1, attachments: 1, video_search: 1,
+    });
 
     expect((await remove(app, OTHER_EMAIL, video.id)).status).toBe(403);
     expect((await remove(app, VIEWER_EMAIL, video.id)).status).toBe(204);
@@ -790,8 +803,11 @@ describe("deleting videos", () => {
     const videoKey = `videos/${video.id}/original.mp4`;
     expect([...app.store.deletedKeys].sort()).toEqual([attachmentKey, thumbnail, videoKey].sort());
     expect([thumbnail, attachmentKey, videoKey].filter((key) => app.store.objects.has(key))).toEqual([]);
-    expect(await rowsOf(app, video.id)).toEqual({ watch_history: 0, comments: 0, ratings: 0, attachments: 0, video_search: 0 });
+    expect(await rowsOf(app, video.id)).toEqual({
+      watch_history: 0, playlist_videos: 0, comments: 0, ratings: 0, attachments: 0, video_search: 0,
+    });
     expect(await episodeTitles(app, series.id)).toEqual(["1. Week 2"]);
+    expect((await body<PlaylistResponse>(await app.signedRequest(`/api/playlists/${playlist.id}`))).playlist.videos).toEqual([]);
     expect((await remove(app, VIEWER_EMAIL, video.id)).status).toBe(404);
   });
 
@@ -820,6 +836,115 @@ describe("deleting videos", () => {
     const upload = await startUpload(app, "Week 1", MIB);
     expect((await remove(app, VIEWER_EMAIL, upload.videoId)).status).toBe(404);
     expect((await app.signedRequest(`/api/uploads/${upload.videoId}/abort`, { method: "POST" })).status).toBe(204);
+  });
+});
+
+describe("playlists", () => {
+  const add = (app: TestApp, email: string, playlistId: string, videoId: string) =>
+    app.requestAs(email, `/api/playlists/${playlistId}/videos`, json({ videoId }));
+  const titlesOf = async (app: TestApp, playlistId: string) =>
+    (await body<PlaylistResponse>(await app.signedRequest(`/api/playlists/${playlistId}`))).playlist.videos.map(
+      (video) => `${video.position}. ${video.title}`,
+    );
+  const choicesOf = async (app: TestApp, videoId: string, email = VIEWER_EMAIL) =>
+    (await body<PlaylistChoicesResponse>(await app.requestAs(email, `/api/videos/${videoId}/playlists`))).playlists.map(
+      (choice) => `${choice.title}: ${choice.hasVideo ? "in" : "out"}`,
+    );
+
+  it("holds anyone's videos in the order that they join, and a video in many playlists", async () => {
+    const app = await createTestApp();
+    const { video: first } = await uploadVideo(app, "Keynote", MIB);
+    const { video: second } = await uploadVideo(app, "Panel", MIB, { email: OTHER_EMAIL });
+    const { playlist: talks } = await createPlaylist(app, "Talks");
+    const { playlist: again } = await createPlaylist(app, "Watch again");
+    expect(talks).toMatchObject({ title: "Talks", description: "", canEdit: true, videos: [], owner: { displayName: "viewer" } });
+
+    expect((await add(app, VIEWER_EMAIL, talks.id, second.id)).status).toBe(200);
+    expect((await add(app, VIEWER_EMAIL, talks.id, first.id)).status).toBe(200);
+    expect((await add(app, VIEWER_EMAIL, again.id, first.id)).status).toBe(200);
+    expect(await titlesOf(app, talks.id)).toEqual(["1. Panel", "2. Keynote"]);
+    expect(await titlesOf(app, again.id)).toEqual(["1. Keynote"]);
+    expect((await add(app, VIEWER_EMAIL, talks.id, first.id)).status).toBe(409);
+
+    // The playlist changed last comes first.
+    expect(await choicesOf(app, first.id)).toEqual(["Watch again: in", "Talks: in"]);
+    expect(await choicesOf(app, second.id)).toEqual(["Watch again: out", "Talks: in"]);
+    expect(await choicesOf(app, second.id, OTHER_EMAIL)).toEqual([]);
+  });
+
+  it("lets everyone see a playlist, and only its owner or an admin change it", async () => {
+    const app = await createTestApp();
+    const { video } = await uploadVideo(app, "Keynote", MIB);
+    const { playlist } = await createPlaylist(app, "Talks");
+    const seen = await body<PlaylistResponse>(await app.requestAs(OTHER_EMAIL, `/api/playlists/${playlist.id}`));
+    expect(seen.playlist.canEdit).toBe(false);
+
+    expect((await add(app, OTHER_EMAIL, playlist.id, video.id)).status).toBe(403);
+    const rename = (email: string) => app.requestAs(email, `/api/playlists/${playlist.id}`, json({ title: "Best talks" }, "PATCH"));
+    expect((await rename(OTHER_EMAIL)).status).toBe(403);
+    expect((await body<PlaylistResponse>(await rename(VIEWER_EMAIL))).playlist.title).toBe("Best talks");
+    expect((await add(app, ADMIN_EMAIL, playlist.id, video.id)).status).toBe(200);
+    const remove = (email: string) => app.requestAs(email, `/api/playlists/${playlist.id}/videos/${video.id}`, { method: "DELETE" });
+    expect((await remove(OTHER_EMAIL)).status).toBe(403);
+    expect((await remove(VIEWER_EMAIL)).status).toBe(200);
+    expect((await remove(VIEWER_EMAIL)).status).toBe(404);
+  });
+
+  it("moves a video one place earlier or later", async () => {
+    const app = await createTestApp();
+    const { playlist } = await createPlaylist(app, "Course");
+    const ids: string[] = [];
+    for (const title of ["Intro", "Setup", "Wrap-up"]) {
+      const { video } = await uploadVideo(app, title, MIB);
+      await add(app, VIEWER_EMAIL, playlist.id, video.id);
+      ids.push(video.id);
+    }
+    const move = (videoId: string | undefined, direction: string, email = VIEWER_EMAIL) =>
+      app.requestAs(email, `/api/playlists/${playlist.id}/videos/${videoId}/move`, json({ direction }));
+    expect((await move(ids[2], "earlier")).status).toBe(200);
+    expect(await titlesOf(app, playlist.id)).toEqual(["1. Intro", "2. Wrap-up", "3. Setup"]);
+    expect((await move(ids[0], "earlier")).status).toBe(409);
+    expect((await move(ids[1], "later")).status).toBe(409);
+    expect((await move(ids[0], "sideways")).status).toBe(400);
+    expect((await move(ids[0], "later", OTHER_EMAIL)).status).toBe(403);
+  });
+
+  it("lists every playlist, or those of one owner, from the one changed last", async () => {
+    const app = await createTestApp();
+    const { video } = await uploadVideo(app, "Keynote", MIB);
+    const { playlist: first } = await createPlaylist(app, "First");
+    await createPlaylist(app, "Second");
+    await createPlaylist(app, "Theirs", OTHER_EMAIL);
+    await add(app, VIEWER_EMAIL, first.id, video.id);
+    const titles = async (query: string) =>
+      (await body<ListPlaylistsResponse>(await app.signedRequest(`/api/playlists${query}`))).playlists.map((playlist) => playlist.title);
+    expect(await titles("")).toEqual(["First", "Theirs", "Second"]);
+    expect(await titles(`?owner=${first.owner.id}`)).toEqual(["First", "Second"]);
+    expect((await app.signedRequest("/api/playlists?owner=nobody")).status).toBe(400);
+  });
+
+  it("deletes a playlist for its owner or an admin, and keeps its videos", async () => {
+    const app = await createTestApp();
+    const { video } = await uploadVideo(app, "Keynote", MIB);
+    const { playlist } = await createPlaylist(app, "Talks");
+    await add(app, VIEWER_EMAIL, playlist.id, video.id);
+    const remove = (email: string) => app.requestAs(email, `/api/playlists/${playlist.id}`, { method: "DELETE" });
+    expect((await remove(OTHER_EMAIL)).status).toBe(403);
+    expect((await remove(VIEWER_EMAIL)).status).toBe(204);
+    expect((await app.signedRequest(`/api/playlists/${playlist.id}`)).status).toBe(404);
+    expect((await app.signedRequest(`/api/videos/${video.id}`)).status).toBe(200);
+    const { playlist: theirs } = await createPlaylist(app, "Theirs", OTHER_EMAIL);
+    expect((await app.requestAs(ADMIN_EMAIL, `/api/playlists/${theirs.id}`, { method: "DELETE" })).status).toBe(204);
+  });
+
+  it("takes only ready videos, and needs a title", async () => {
+    const app = await createTestApp();
+    const { playlist } = await createPlaylist(app, "Talks");
+    const upload = await startUpload(app, "Still uploading", MIB);
+    expect((await add(app, VIEWER_EMAIL, playlist.id, upload.videoId)).status).toBe(400);
+    expect((await add(app, VIEWER_EMAIL, playlist.id, "nonexistent00000")).status).toBe(400);
+    expect((await app.signedRequest("/api/playlists", json({ title: "  ", description: "" }))).status).toBe(400);
+    expect((await app.signedRequest("/api/playlists/nonexistent00000")).status).toBe(404);
   });
 });
 

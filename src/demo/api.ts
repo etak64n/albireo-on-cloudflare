@@ -1,6 +1,6 @@
 // Answers of the albireo API for the demo on GitHub Pages, from the made-up library of
 // data.ts, so that the demo shows the real screens without a Worker, Cloudflare Access,
-// or storage. Changes, such as a rating, a comment, a new series, or the language, stay
+// or storage. Changes, such as a rating, a comment, a new series or playlist, or the language, stay
 // in memory until the page reloads. The videos, the pictures, and the attachments are
 // files beside the demo (media.ts) in place of signed URLs, with their sizes in a list
 // beside them, and the demo keeps no files of its own, so uploads fail with a short
@@ -23,10 +23,15 @@ import {
   type EpisodeLink,
   type HistoryResponse,
   type ListCommentsResponse,
+  type ListPlaylistsResponse,
   type ListSeriesResponse,
   type ListVideosResponse,
   type Me,
   type MeResponse,
+  type PlaylistChoicesResponse,
+  type PlaylistDetail,
+  type PlaylistResponse,
+  type PlaylistSummary,
   type RatingResponse,
   type RandomVideosResponse,
   type RecommendationsResponse,
@@ -48,7 +53,7 @@ import {
   type VideoSummary,
 } from "../../shared/api.ts";
 import { ApiError } from "../api.ts";
-import { createLibrary, type DemoAttachment, type DemoComment, type DemoPerson, type DemoSeries, type DemoVideo } from "./data.ts";
+import { createLibrary, type DemoAttachment, type DemoComment, type DemoPerson, type DemoPlaylist, type DemoSeries, type DemoVideo } from "./data.ts";
 import { ATTACHMENT_FILES, MEDIA_PATHS, VIDEO_SECONDS } from "./media.ts";
 
 const library = createLibrary(new Date());
@@ -123,6 +128,15 @@ const ROUTES = [
   route("DELETE", "/api/series/:id", ({ ids: [id = ""] }) => deleteSeries(id)),
   route("POST", "/api/series/:id/episodes/:id/move", ({ ids: [seriesId = "", videoId = ""], body }) => moveEpisode(seriesId, videoId, body)),
   route("DELETE", "/api/series/:id/episodes/:id", ({ ids: [seriesId = "", videoId = ""] }) => removeEpisode(seriesId, videoId)),
+  route("GET", "/api/videos/:id/playlists", ({ ids: [id = ""] }) => playlistChoices(id)),
+  route("GET", "/api/playlists", ({ query }) => listPlaylists(query.get("owner"))),
+  route("POST", "/api/playlists", ({ body }) => createPlaylist(body)),
+  route("GET", "/api/playlists/:id", ({ ids: [id = ""] }) => ({ playlist: playlistDetail(findPlaylist(id)) }) satisfies PlaylistResponse),
+  route("PATCH", "/api/playlists/:id", ({ ids: [id = ""], body }) => updatePlaylist(id, body)),
+  route("DELETE", "/api/playlists/:id", ({ ids: [id = ""] }) => deletePlaylist(id)),
+  route("POST", "/api/playlists/:id/videos", ({ ids: [id = ""], body }) => addToPlaylist(id, body)),
+  route("DELETE", "/api/playlists/:id/videos/:id", ({ ids: [playlistId = "", videoId = ""] }) => removeFromPlaylist(playlistId, videoId)),
+  route("POST", "/api/playlists/:id/videos/:id/move", ({ ids: [playlistId = "", videoId = ""], body }) => movePlaylistVideo(playlistId, videoId, body)),
 ];
 
 /**
@@ -194,6 +208,12 @@ function findVideo(id: string): DemoVideo {
   const video = library.videos.find((candidate) => candidate.id === id);
   if (video === undefined) throw notFound("No ready video has this ID.");
   return video;
+}
+
+function findPlaylist(id: string): DemoPlaylist {
+  const playlist = library.playlists.find((candidate) => candidate.id === id);
+  if (playlist === undefined) throw notFound("No playlist has this ID.");
+  return playlist;
 }
 
 function findSeries(id: string): DemoSeries {
@@ -499,6 +519,7 @@ function deleteVideo(id: string): undefined {
   library.comments = library.comments.filter((item) => item.videoId !== video.id);
   library.ratings = library.ratings.filter((item) => item.videoId !== video.id);
   library.history = library.history.filter((item) => item.videoId !== video.id);
+  for (const playlist of library.playlists) playlist.videoIds = playlist.videoIds.filter((videoId) => videoId !== video.id);
   const series = library.series.find((item) => item.id === video.seriesId);
   if (series !== undefined) series.updatedAt = now();
   return undefined;
@@ -637,4 +658,125 @@ function removeEpisode(seriesId: string, videoId: string): SeriesResponse {
   video.updatedAt = time;
   series.updatedAt = time;
   return { series: seriesDetail(series) };
+}
+
+function canEditPlaylist(playlist: DemoPlaylist): boolean {
+  return library.me.isAdmin || playlist.ownerId === library.me.id;
+}
+
+/** The videos of a playlist, in their order, without the ones that the library no longer has. */
+function videosOf(playlist: DemoPlaylist): DemoVideo[] {
+  return playlist.videoIds.flatMap((id) => library.videos.find((video) => video.id === id) ?? []);
+}
+
+function playlistSummary(playlist: DemoPlaylist): PlaylistSummary {
+  const cover = videosOf(playlist)[0];
+  return {
+    id: playlist.id,
+    title: playlist.title,
+    owner: personSummary(playlist.ownerId),
+    coverUrl: cover === undefined ? null : mediaUrl(MEDIA_PATHS.poster(cover.media)),
+    updatedAt: playlist.updatedAt,
+  };
+}
+
+function playlistDetail(playlist: DemoPlaylist): PlaylistDetail {
+  return {
+    id: playlist.id,
+    title: playlist.title,
+    description: playlist.description,
+    owner: personSummary(playlist.ownerId),
+    createdAt: playlist.createdAt,
+    updatedAt: playlist.updatedAt,
+    canEdit: canEditPlaylist(playlist),
+    videos: videosOf(playlist).map((video, index) => ({ ...summary(video), position: index + 1 })),
+  };
+}
+
+function newestPlaylistsFirst(): DemoPlaylist[] {
+  return [...library.playlists].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || (a.id < b.id ? 1 : -1));
+}
+
+/** Every playlist, or those of one person, from the one that changed last. */
+function listPlaylists(ownerId: string | null): ListPlaylistsResponse {
+  const playlists = newestPlaylistsFirst().filter((item) => ownerId === null || item.ownerId === ownerId);
+  return { playlists: playlists.map(playlistSummary) };
+}
+
+/** The playlists of the signed-in person, each with whether it holds the video. */
+function playlistChoices(videoId: string): PlaylistChoicesResponse {
+  const video = findVideo(videoId);
+  const mine = newestPlaylistsFirst().filter((item) => item.ownerId === library.me.id);
+  return { playlists: mine.map((item) => ({ id: item.id, title: item.title, hasVideo: item.videoIds.includes(video.id) })) };
+}
+
+function createPlaylist(body: Fields): PlaylistResponse {
+  const time = now();
+  const playlist: DemoPlaylist = {
+    id: newId(),
+    title: readText(body, "title", 1, TITLE_MAX_LENGTH, true),
+    description: readText(body, "description", 0, DESCRIPTION_MAX_LENGTH, false),
+    ownerId: library.me.id,
+    createdAt: time,
+    updatedAt: time,
+    videoIds: [],
+  };
+  library.playlists.push(playlist);
+  return { playlist: playlistDetail(playlist) };
+}
+
+function editablePlaylist(id: string, action: string): DemoPlaylist {
+  const playlist = findPlaylist(id);
+  if (!canEditPlaylist(playlist)) throw new ApiError(403, "forbidden", `Only the owner of the playlist or an admin can ${action} it.`);
+  return playlist;
+}
+
+function updatePlaylist(id: string, body: Fields): PlaylistResponse {
+  const playlist = editablePlaylist(id, "edit");
+  if ("title" in body) playlist.title = readText(body, "title", 1, TITLE_MAX_LENGTH, true);
+  if ("description" in body) playlist.description = readText(body, "description", 0, DESCRIPTION_MAX_LENGTH, false);
+  playlist.updatedAt = now();
+  return { playlist: playlistDetail(playlist) };
+}
+
+/** Deletes a playlist, as the Worker does: its videos stay in the library. */
+function deletePlaylist(id: string): undefined {
+  const playlist = editablePlaylist(id, "delete");
+  library.playlists = library.playlists.filter((item) => item.id !== playlist.id);
+  return undefined;
+}
+
+function addToPlaylist(id: string, body: Fields): PlaylistResponse {
+  const playlist = editablePlaylist(id, "change");
+  const videoId = body["videoId"];
+  const video = library.videos.find((candidate) => candidate.id === videoId);
+  if (video === undefined) throw badRequest("No ready video has this videoId.");
+  if (playlist.videoIds.includes(video.id)) throw new ApiError(409, "conflict", "The playlist holds the video already.");
+  playlist.videoIds.push(video.id);
+  playlist.updatedAt = now();
+  return { playlist: playlistDetail(playlist) };
+}
+
+function removeFromPlaylist(id: string, videoId: string): PlaylistResponse {
+  const playlist = editablePlaylist(id, "change");
+  if (!playlist.videoIds.includes(videoId)) throw notFound("The playlist does not hold a video with this ID.");
+  playlist.videoIds = playlist.videoIds.filter((item) => item !== videoId);
+  playlist.updatedAt = now();
+  return { playlist: playlistDetail(playlist) };
+}
+
+function movePlaylistVideo(id: string, videoId: string, body: Fields): PlaylistResponse {
+  const playlist = findPlaylist(id);
+  const direction = body["direction"];
+  if (direction !== "earlier" && direction !== "later") throw badRequest('direction must be "earlier" or "later".');
+  editablePlaylist(id, "reorder");
+  const index = playlist.videoIds.indexOf(videoId);
+  if (index === -1) throw notFound("The playlist has no ready video with this ID.");
+  const other = direction === "earlier" ? index - 1 : index + 1;
+  const neighbor = playlist.videoIds[other];
+  if (neighbor === undefined) throw new ApiError(409, "conflict", `The video is already the ${direction === "earlier" ? "first" : "last"} one.`);
+  playlist.videoIds[other] = videoId;
+  playlist.videoIds[index] = neighbor;
+  playlist.updatedAt = now();
+  return { playlist: playlistDetail(playlist) };
 }

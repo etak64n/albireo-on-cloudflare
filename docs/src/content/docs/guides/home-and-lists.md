@@ -24,7 +24,7 @@ The random videos start at a random place among the IDs of the videos, which are
 
 All videos (`/videos`) lists every video, 48 per page, in the order that you choose: from the newest, from the oldest, or from the highest rated (worker/videos.ts, shared/api.ts).
 The highest rated come by their average stars, with more ratings first among equal averages, and the videos that nobody rated come last.
-The order stays in the address, such as `/videos?sort=rating`. The series are in the sidebar.
+The order stays in the address, such as `/videos?sort=rating`.
 
 The lists load their next page by themselves as you scroll near the end, as do the search results, the videos of a person, and the comments (src/components/LoadMore.tsx).
 
@@ -33,7 +33,8 @@ Before the library has its first video, Home and All videos say that it has none
 History (`/history`) lists the videos that the person watched, from the last watched.
 The player records a video when its playback starts, and each person sees only their own history (worker/app.ts).
 
-The sidebar on the left links to the three lists and to the series.
-It lists the 5 series changed last, by their episodes or their title and description, and Show all under them lists every series, from the one changed last. The list stays open from page to page until the page loads again (src/components/Shell.tsx).
+The sidebar on the left links to the three lists, to the upload page, to the series, and to the playlists of the signed-in person.
+The headings Series and Playlists open the pages that list every series (`/series`) and every playlist of everyone (`/playlists`).
+Under each heading, the sidebar lists the 5 changed last, a series by its episodes or its title and description, and Show all under them lists every one, from the one changed last. The list stays open from page to page until the page loads again (src/components/Shell.tsx).
 On screens narrower than 1024px, the sidebar hides, and the menu button in the upper left corner opens it over the page.
 Dates show as YYYY/MM/DD (src/lib/format.ts, `formatDate`).

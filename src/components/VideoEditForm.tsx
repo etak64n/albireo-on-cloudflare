@@ -5,13 +5,15 @@ import { api } from "../api.ts";
 import { useT } from "../i18n.ts";
 import { cn } from "../lib/utils.ts";
 import { Link } from "../router.tsx";
+import { AddToPlaylist } from "./AddToPlaylist.tsx";
 import { Button, buttonVariants } from "./ui/button.tsx";
 import { Input, Label, Textarea } from "./ui/field.tsx";
 import { Select } from "./ui/select.tsx";
 
 /**
- * The title and the description of a video on its page. For the uploader of the video and
- * admins, a small pencil beside the title opens the edit page of the video.
+ * The title and the description of a video on its page. Beside the title, Add to playlist puts
+ * the video in the playlists of the signed-in person, and for the uploader of the video and
+ * admins, a small pencil opens the edit page of the video.
  */
 export function VideoTitle({ video }: { video: VideoDetail }) {
   const t = useT();
@@ -20,12 +22,15 @@ export function VideoTitle({ video }: { video: VideoDetail }) {
       <div className="flex items-start justify-between gap-3">
         {/* The title under the player takes the size of a section heading, not of a page heading. */}
         <h1 className="min-w-0 text-figure font-bold break-words text-strong">{video.title}</h1>
-        {video.canEdit && (
-          <Link to={`/videos/${video.id}/edit`} className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "shrink-0 text-subdued")}>
-            <Pencil aria-hidden="true" />
-            <span className="sr-only">{t.common.edit}</span>
-          </Link>
-        )}
+        <div className="flex shrink-0 items-center gap-1">
+          <AddToPlaylist videoId={video.id} />
+          {video.canEdit && (
+            <Link to={`/videos/${video.id}/edit`} className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-subdued")}>
+              <Pencil aria-hidden="true" />
+              <span className="sr-only">{t.common.edit}</span>
+            </Link>
+          )}
+        </div>
       </div>
       {video.description && <p className="max-w-[75ch] text-sm leading-relaxed break-words whitespace-pre-wrap">{video.description}</p>}
     </header>

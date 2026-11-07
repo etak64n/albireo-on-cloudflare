@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, History, House, KeyRound, Layers, LayoutGrid, LogOut, Menu as MenuIcon, Plus, Search, Settings, Upload, UserRound, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ChevronUp, History, House, KeyRound, Layers, LayoutGrid, ListVideo, LogOut, Menu as MenuIcon, Plus, Search, Settings, Upload, UserRound, X } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import appearance from "virtual:albireo-appearance";
 import { SEARCH_QUERY_MAX_LENGTH, TITLE_MAX_LENGTH } from "../../shared/api.ts";
@@ -187,35 +187,26 @@ function AccountMenu() {
   );
 }
 
-// The sidebar lists this many series, the ones changed last, until Show all lists every one.
-const SIDEBAR_SERIES = 5;
+// Each group of the sidebar lists this many, the ones changed last, until Show all lists every one.
+const SIDEBAR_ITEMS = 5;
 
-// Whether the sidebar lists every series. Each page draws the sidebar anew, so the choice is
-// kept here until the page loads again, and the list stays open from page to page.
-let everySeriesShown = false;
+// Whether a group of the sidebar lists every one. Each page draws the sidebar anew, so the
+// choice is kept here until the page loads again, and the list stays open from page to page.
+const everyItemShown = { series: false, playlists: false };
 
-/** A row after the series in the sidebar: an action, quieter than the pages. */
+/** A row after the items of a group in the sidebar: an action, quieter than the pages. */
 const SIDEBAR_ACTION =
   "-mx-1 flex h-[30px] items-center gap-3 rounded-sm px-2 text-sm text-subdued transition-colors duration-150 hover:bg-surface-hover hover:text-strong pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0";
 
 /**
- * The pages of the library and the series, the ones changed last first. The sidebar on wide
- * screens and the panel that slides in on narrow screens show the same, and the panel can close.
+ * The pages of the library, every series, and the playlists of the signed-in person, the ones
+ * changed last first. The sidebar on wide screens and the panel that slides in on narrow
+ * screens show the same, and the panel can close.
  */
 function Sidebar({ closable = false }: { closable?: boolean }) {
-  const { series, error } = useLibrary();
+  const { series, playlists, error } = useLibrary();
   const t = useT();
   const pathname = usePathname();
-  const [creating, setCreating] = useState(false);
-  const [showAll, setShowAll] = useState(() => everySeriesShown);
-  const seriesListId = useId();
-  const hasMore = series !== null && series.length > SIDEBAR_SERIES;
-  const listed = series === null || showAll ? series : series.slice(0, SIDEBAR_SERIES);
-
-  function toggleAll() {
-    everySeriesShown = !showAll;
-    setShowAll(everySeriesShown);
-  }
 
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto px-5 pb-6">
@@ -243,34 +234,113 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
           {t.upload.upload}
         </NavLink>
       </nav>
-      <div className="grid gap-1">
-        <h2 className="flex h-7 items-center text-xs text-subdued">{t.common.series}</h2>
-        {error !== "" && <p className="text-xs font-semibold text-critical">{error}</p>}
-        {listed !== null && listed.length > 0 && (
-          <nav id={seriesListId} className="-mx-1 grid gap-0.5" aria-label={t.common.series}>
-            {listed.map((item) => (
-              <NavLink key={item.id} to={`/series/${item.id}`} current={pathname === `/series/${item.id}`} icon={<Layers />}>
-                {item.title}
-              </NavLink>
-            ))}
-          </nav>
-        )}
-        {hasMore && (
-          <button type="button" onClick={toggleAll} aria-expanded={showAll} aria-controls={seriesListId} className={SIDEBAR_ACTION}>
-            {showAll ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
-            <span className="truncate">{showAll ? t.shell.showFewerSeries : t.shell.showAllSeries}</span>
-          </button>
-        )}
-        {/* The last row opens the form for a new series, which takes its place. */}
-        {creating ? (
-          <NewSeriesForm onDone={() => setCreating(false)} />
-        ) : (
-          <button type="button" onClick={() => setCreating(true)} className={SIDEBAR_ACTION}>
-            <Plus aria-hidden="true" />
-            <span className="truncate">{t.shell.newSeries}</span>
-          </button>
-        )}
-      </div>
+      {error !== "" && <p className="text-xs font-semibold text-critical">{error}</p>}
+      <SidebarGroup
+        group="series"
+        heading={t.common.series}
+        listPath="/series"
+        items={series}
+        pathOf={(id) => `/series/${id}`}
+        icon={<Layers />}
+        newLabel={t.shell.newSeries}
+        titleLabel={t.shell.seriesTitle}
+        create={async (title) => `/series/${(await api.createSeries({ title, description: "" })).series.id}`}
+      />
+      <SidebarGroup
+        group="playlists"
+        heading={t.common.playlists}
+        listPath="/playlists"
+        items={playlists}
+        pathOf={(id) => `/playlists/${id}`}
+        icon={<ListVideo />}
+        newLabel={t.shell.newPlaylist}
+        titleLabel={t.shell.playlistTitle}
+        create={async (title) => `/playlists/${(await api.createPlaylist({ title, description: "" })).playlist.id}`}
+      />
+    </div>
+  );
+}
+
+/**
+ * A group of the sidebar, the series or the playlists: a heading that opens the page that lists
+ * them, the ones changed last, Show all under them for the rest, and a last row that opens the
+ * form for a new one in its place.
+ */
+function SidebarGroup({
+  group,
+  heading,
+  listPath,
+  items,
+  pathOf,
+  icon,
+  newLabel,
+  titleLabel,
+  create,
+}: {
+  group: keyof typeof everyItemShown;
+  heading: string;
+  /** The page that lists them. */
+  listPath: string;
+  /** Null until the library loads. */
+  items: { id: string; title: string }[] | null;
+  pathOf: (id: string) => string;
+  icon: ReactNode;
+  newLabel: string;
+  titleLabel: string;
+  /** Makes a new one with the title and returns the path of its page. */
+  create: (title: string) => Promise<string>;
+}) {
+  const t = useT();
+  const pathname = usePathname();
+  const [creating, setCreating] = useState(false);
+  const [showAll, setShowAll] = useState(() => everyItemShown[group]);
+  const listId = useId();
+  const hasMore = items !== null && items.length > SIDEBAR_ITEMS;
+  const listed = items === null || showAll ? items : items.slice(0, SIDEBAR_ITEMS);
+
+  function toggleAll() {
+    everyItemShown[group] = !showAll;
+    setShowAll(everyItemShown[group]);
+  }
+
+  return (
+    <div className="grid gap-1">
+      <h2 className="flex h-7 items-center text-xs">
+        <Link
+          to={listPath}
+          current={pathname === listPath}
+          className={cn(
+            "-mx-1 flex items-center gap-1 rounded-xs px-1 transition-colors duration-150 hover:text-strong [&_svg]:size-3",
+            pathname === listPath ? "font-semibold text-accent" : "text-subdued",
+          )}
+        >
+          {heading}
+          <ChevronRight aria-hidden="true" />
+        </Link>
+      </h2>
+      {listed !== null && listed.length > 0 && (
+        <nav id={listId} className="-mx-1 grid gap-0.5" aria-label={heading}>
+          {listed.map((item) => (
+            <NavLink key={item.id} to={pathOf(item.id)} current={pathname === pathOf(item.id)} icon={icon}>
+              {item.title}
+            </NavLink>
+          ))}
+        </nav>
+      )}
+      {hasMore && (
+        <button type="button" onClick={toggleAll} aria-expanded={showAll} aria-controls={listId} className={SIDEBAR_ACTION}>
+          {showAll ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
+          <span className="truncate">{showAll ? t.shell.showFewer : t.shell.showAll}</span>
+        </button>
+      )}
+      {creating ? (
+        <NewItemForm titleLabel={titleLabel} create={create} onDone={() => setCreating(false)} />
+      ) : (
+        <button type="button" onClick={() => setCreating(true)} className={SIDEBAR_ACTION}>
+          <Plus aria-hidden="true" />
+          <span className="truncate">{newLabel}</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -292,22 +362,22 @@ function NavLink({ to, current, icon, children }: { to: string; current: boolean
   );
 }
 
-/** Creates a series from its title and opens its page. The page edits the description. */
-function NewSeriesForm({ onDone }: { onDone: () => void }) {
+/** Makes a series or a playlist from its title and opens its page. The page edits the description. */
+function NewItemForm({ titleLabel, create, onDone }: { titleLabel: string; create: (title: string) => Promise<string>; onDone: () => void }) {
   const { refresh } = useLibrary();
   const t = useT();
   const [title, setTitle] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  async function create() {
+  async function submit() {
     setSaving(true);
     setError("");
     try {
-      const { series } = await api.createSeries({ title, description: "" });
+      const path = await create(title);
       await refresh();
       onDone();
-      navigate(`/series/${series.id}`);
+      navigate(path);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setSaving(false);
@@ -319,10 +389,10 @@ function NewSeriesForm({ onDone }: { onDone: () => void }) {
       className="grid gap-2 pb-2"
       onSubmit={(event) => {
         event.preventDefault();
-        if (title.trim() !== "") void create();
+        if (title.trim() !== "") void submit();
       }}
     >
-      <Input value={title} maxLength={TITLE_MAX_LENGTH} onChange={(e) => setTitle(e.target.value)} aria-label={t.shell.seriesTitle} placeholder={t.shell.seriesTitle} autoFocus />
+      <Input value={title} maxLength={TITLE_MAX_LENGTH} onChange={(e) => setTitle(e.target.value)} aria-label={titleLabel} placeholder={titleLabel} autoFocus />
       {error && <p className="text-xs font-semibold text-critical">{error}</p>}
       <div className="flex gap-2">
         <Button type="submit" variant="primary" disabled={saving || title.trim() === ""}>

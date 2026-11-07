@@ -8,7 +8,9 @@
 // edits the series that they created; admins edit and delete everything. A comment
 // can be deleted by its author, the uploader of the video, and admins. The uploader
 // of a video and admins attach files to it, and everyone downloads them. Deleting a
-// video, an attachment, or a picture deletes its files from the bucket too.
+// video, an attachment, or a picture deletes its files from the bucket too. Anyone
+// makes playlists of any videos; the owner of a playlist and admins change it, and
+// everyone sees it.
 
 import { Hono } from "hono";
 import type { JWTVerifyGetKey } from "jose";
@@ -38,11 +40,16 @@ import {
   type ImageUploadResponse,
   type Language,
   type ListCommentsResponse,
+  type ListPlaylistsResponse,
   type ListSeriesResponse,
   type ListVideosResponse,
   type Me,
   type MeResponse,
   type PartUrlsResponse,
+  type PlaylistChoicesResponse,
+  type PlaylistDetail,
+  type PlaylistResponse,
+  type PlaylistSummary,
   type RatingResponse,
   type RandomVideosResponse,
   type RecommendationsResponse,
@@ -87,6 +94,7 @@ import {
 } from "./http.ts";
 import { randomId } from "./ids.ts";
 import { errorFields, log } from "./log.ts";
+import { PlaylistRepository, type PlaylistRecord } from "./playlists.ts";
 import { RatingRepository } from "./ratings.ts";
 import { ConfigurationError, readRuntimeConfig, type RuntimeConfig } from "./runtime-config.ts";
 import { pageHeaders } from "./security-headers.ts";
@@ -97,7 +105,7 @@ import { UserRepository, type UserRecord } from "./users.ts";
 import { deviceOf, placeOf, SessionRepository, sessionIdOf } from "./sessions.ts";
 import { VideoRepository, type ListCursor, type RatingCursor, type VideoRecord, type WatchedVideoRecord } from "./videos.ts";
 
-export type IdKind = "video" | "user" | "series" | "comment" | "attachment";
+export type IdKind = "video" | "user" | "series" | "comment" | "attachment" | "playlist";
 
 export interface AppDependencies {
   /** Signing keys of the Access team that protects the deployment. */
@@ -106,7 +114,7 @@ export interface AppDependencies {
   fetchIdentity: IdentityFetcher;
   objectStoreFor: (config: RuntimeConfig) => ObjectStore;
   now: () => Date;
-  /** Returns a new ID for a video, a user, a series, a comment, or an attachment. */
+  /** Returns a new ID for a video, a user, a series, a comment, an attachment, or a playlist. */
   newId: (kind: IdKind) => string;
 }
 
@@ -756,6 +764,119 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
     });
   });
 
+  // The playlists of the signed-in person, each with whether it holds the video, for adding the video to them.
+  app.get("/api/videos/:id/playlists", async (c) => {
+    const video = await findReady(new VideoRepository(c.env.DB), pathId(c.req.param("id"), "video"));
+    const playlists = await new PlaylistRepository(c.env.DB).choicesFor(c.get("viewer").id, video.id);
+    return c.json<PlaylistChoicesResponse>({ playlists });
+  });
+
+  app.get("/api/playlists", async (c) => {
+    const owner = c.req.query("owner");
+    if (owner !== undefined && !ID_PATTERN.test(owner)) throw badRequest("owner must be a user ID.");
+    const objectStore = store(c.get("config"));
+    const list = await new PlaylistRepository(c.env.DB).list(owner ?? null);
+    return c.json<ListPlaylistsResponse>({ playlists: await Promise.all(list.map((playlist) => toPlaylistSummary(playlist, objectStore))) });
+  });
+
+  app.post("/api/playlists", async (c) => {
+    const body = await readJsonObject(c.req.raw, ["title", "description"]);
+    const title = readString(body, "title", { min: 1, max: TITLE_MAX_LENGTH, trim: true });
+    const description = readString(body, "description", { min: 0, max: DESCRIPTION_MAX_LENGTH, trim: false });
+    const repository = new PlaylistRepository(c.env.DB);
+    const id = deps.newId("playlist");
+    await repository.insert({ id, title, description, ownerId: c.get("viewer").id, createdAt: now() });
+    const playlist = await findPlaylist(repository, id);
+    return c.json<PlaylistResponse>({ playlist: await toPlaylistDetail(c.env.DB, playlist, c.get("viewer"), store(c.get("config"))) }, 201);
+  });
+
+  app.get("/api/playlists/:id", async (c) => {
+    const playlist = await findPlaylist(new PlaylistRepository(c.env.DB), pathId(c.req.param("id"), "playlist"));
+    return c.json<PlaylistResponse>({ playlist: await toPlaylistDetail(c.env.DB, playlist, c.get("viewer"), store(c.get("config"))) });
+  });
+
+  app.patch("/api/playlists/:id", async (c) => {
+    const id = pathId(c.req.param("id"), "playlist");
+    const body = await readJsonObject(c.req.raw, ["title", "description"]);
+    const title = readOptionalString(body, "title", { min: 1, max: TITLE_MAX_LENGTH, trim: true });
+    const description = readOptionalString(body, "description", { min: 0, max: DESCRIPTION_MAX_LENGTH, trim: false });
+    if (title === undefined && description === undefined) throw badRequest("Send a title, a description, or both.");
+    const repository = new PlaylistRepository(c.env.DB);
+    const viewer = c.get("viewer");
+    if (!canEditPlaylist(viewer, await findPlaylist(repository, id))) {
+      throw forbidden("Only the owner of the playlist or an admin can edit it.");
+    }
+    await repository.updateDetails(id, { title, description }, now());
+    return c.json<PlaylistResponse>({
+      playlist: await toPlaylistDetail(c.env.DB, await findPlaylist(repository, id), viewer, store(c.get("config"))),
+    });
+  });
+
+  // Deletes a playlist. Its videos stay in the library and in other playlists.
+  app.delete("/api/playlists/:id", async (c) => {
+    const repository = new PlaylistRepository(c.env.DB);
+    const playlist = await findPlaylist(repository, pathId(c.req.param("id"), "playlist"));
+    if (!canEditPlaylist(c.get("viewer"), playlist)) throw forbidden("Only the owner of the playlist or an admin can delete it.");
+    await repository.delete(playlist.id);
+    log("INFO", "Playlist deleted", c.get("requestId"), { playlistId: playlist.id });
+    return c.body(null, 204);
+  });
+
+  // Puts a ready video at the end of a playlist. Any video can be in any number of playlists.
+  app.post("/api/playlists/:id/videos", async (c) => {
+    const repository = new PlaylistRepository(c.env.DB);
+    const playlist = await findPlaylist(repository, pathId(c.req.param("id"), "playlist"));
+    const body = await readJsonObject(c.req.raw, ["videoId"]);
+    const videoId = readString(body, "videoId", { min: 1, max: 100, trim: false });
+    const viewer = c.get("viewer");
+    if (!canEditPlaylist(viewer, playlist)) throw forbidden("Only the owner of the playlist or an admin can change it.");
+    const video = ID_PATTERN.test(videoId) ? await new VideoRepository(c.env.DB).find(videoId) : null;
+    if (video === null || video.status !== "ready") throw badRequest("No ready video has this videoId.");
+    if (!(await repository.addVideo(playlist.id, video.id, now()))) throw conflict("The playlist holds the video already.");
+    return c.json<PlaylistResponse>({
+      playlist: await toPlaylistDetail(c.env.DB, await findPlaylist(repository, playlist.id), viewer, store(c.get("config"))),
+    });
+  });
+
+  app.delete("/api/playlists/:id/videos/:videoId", async (c) => {
+    const repository = new PlaylistRepository(c.env.DB);
+    const playlist = await findPlaylist(repository, pathId(c.req.param("id"), "playlist"));
+    const videoId = pathId(c.req.param("videoId"), "video");
+    const viewer = c.get("viewer");
+    if (!canEditPlaylist(viewer, playlist)) throw forbidden("Only the owner of the playlist or an admin can change it.");
+    if (!(await repository.removeVideo(playlist.id, videoId, now()))) throw notFound("The playlist does not hold a video with this ID.");
+    return c.json<PlaylistResponse>({
+      playlist: await toPlaylistDetail(c.env.DB, await findPlaylist(repository, playlist.id), viewer, store(c.get("config"))),
+    });
+  });
+
+  // Moves a video of a playlist one place earlier or later.
+  app.post("/api/playlists/:id/videos/:videoId/move", async (c) => {
+    const repository = new PlaylistRepository(c.env.DB);
+    const playlist = await findPlaylist(repository, pathId(c.req.param("id"), "playlist"));
+    const videoId = pathId(c.req.param("videoId"), "video");
+    const body = await readJsonObject(c.req.raw, ["direction"]);
+    const direction = readString(body, "direction", { min: 1, max: 10, trim: false });
+    if (direction !== "earlier" && direction !== "later") throw badRequest('direction must be "earlier" or "later".');
+    const viewer = c.get("viewer");
+    if (!canEditPlaylist(viewer, playlist)) throw forbidden("Only the owner of the playlist or an admin can reorder it.");
+    const videos = await new VideoRepository(c.env.DB).listInPlaylist(playlist.id);
+    const index = videos.findIndex((video) => video.id === videoId);
+    const video = videos[index];
+    if (video === undefined) throw notFound("The playlist has no ready video with this ID.");
+    const neighbor = videos[direction === "earlier" ? index - 1 : index + 1];
+    if (neighbor === undefined) throw conflict(`The video is already the ${direction === "earlier" ? "first" : "last"} one.`);
+    await repository.swapVideos(
+      playlist.id,
+      { id: video.id, position: video.playlistPosition },
+      { id: neighbor.id, position: neighbor.playlistPosition },
+    );
+    await repository.touch(playlist.id, now());
+    return c.json<PlaylistResponse>({
+      playlist: await toPlaylistDetail(c.env.DB, await findPlaylist(repository, playlist.id), viewer, store(c.get("config"))),
+    });
+  });
+
   // Pages of the browser app. A deployment runs the Worker for every request but the
   // built files under /assets/ (cloudflare.config.ts), so that each page leaves with
   // the security headers of security-headers.ts. The headers also go on a 304, which
@@ -858,6 +979,10 @@ function canEditVideo(viewer: Viewer, video: VideoRecord): boolean {
 
 function canEditSeries(viewer: Viewer, series: SeriesRecord): boolean {
   return viewer.isAdmin || series.ownerId === viewer.id;
+}
+
+function canEditPlaylist(viewer: Viewer, playlist: PlaylistRecord): boolean {
+  return viewer.isAdmin || playlist.ownerId === viewer.id;
 }
 
 // Only the uploader of the video and admins can commit and remove its attachments.
@@ -996,6 +1121,12 @@ async function findSeries(repository: SeriesRepository, id: string): Promise<Ser
   return series;
 }
 
+async function findPlaylist(repository: PlaylistRepository, id: string): Promise<PlaylistRecord> {
+  const playlist = await repository.find(id);
+  if (playlist === null) throw notFound("No playlist has this ID.");
+  return playlist;
+}
+
 function planUpload(fileSize: number): PartPlan {
   try {
     return planParts(fileSize);
@@ -1090,8 +1221,9 @@ async function seriesOf(db: D1Database, video: VideoRecord): Promise<VideoSeries
   };
 }
 
-async function ownerOf(series: SeriesRecord, store: ObjectStore): Promise<UserSummary> {
-  return { id: series.ownerId, displayName: series.ownerName, avatarUrl: await signedOrNull(store, series.ownerAvatarKey) };
+/** The person who made a series or a playlist. */
+async function ownerOf(owned: SeriesRecord | PlaylistRecord, store: ObjectStore): Promise<UserSummary> {
+  return { id: owned.ownerId, displayName: owned.ownerName, avatarUrl: await signedOrNull(store, owned.ownerAvatarKey) };
 }
 
 async function toSeriesSummary(series: SeriesRecord, store: ObjectStore): Promise<SeriesSummary> {
@@ -1117,6 +1249,30 @@ async function toSeriesDetail(db: D1Database, series: SeriesRecord, viewer: View
     episodes: await Promise.all(
       episodes.map(async (episode, index) => ({ ...(await toSummary(episode, store)), episode: index + 1 })),
     ),
+  };
+}
+
+async function toPlaylistSummary(playlist: PlaylistRecord, store: ObjectStore): Promise<PlaylistSummary> {
+  return {
+    id: playlist.id,
+    title: playlist.title,
+    owner: await ownerOf(playlist, store),
+    coverUrl: await signedOrNull(store, playlist.coverKey),
+    updatedAt: playlist.updatedAt,
+  };
+}
+
+async function toPlaylistDetail(db: D1Database, playlist: PlaylistRecord, viewer: Viewer, store: ObjectStore): Promise<PlaylistDetail> {
+  const videos = await new VideoRepository(db).listInPlaylist(playlist.id);
+  return {
+    id: playlist.id,
+    title: playlist.title,
+    description: playlist.description,
+    owner: await ownerOf(playlist, store),
+    createdAt: playlist.createdAt,
+    updatedAt: playlist.updatedAt,
+    canEdit: canEditPlaylist(viewer, playlist),
+    videos: await Promise.all(videos.map(async (video, index) => ({ ...(await toSummary(video, store)), position: index + 1 }))),
   };
 }
 

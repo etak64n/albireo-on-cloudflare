@@ -1,11 +1,14 @@
 import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
 import { LibraryProvider } from "./library.tsx";
 import { AccountPage } from "./pages/AccountPage.tsx";
+import { AllPlaylistsPage } from "./pages/AllPlaylistsPage.tsx";
+import { AllSeriesPage } from "./pages/AllSeriesPage.tsx";
 import { AllVideosPage } from "./pages/AllVideosPage.tsx";
 import { ChannelSettingsPage } from "./pages/ChannelSettingsPage.tsx";
 import { HistoryPage } from "./pages/HistoryPage.tsx";
 import { HomePage } from "./pages/HomePage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
+import { PlaylistPage } from "./pages/PlaylistPage.tsx";
 import { SearchPage } from "./pages/SearchPage.tsx";
 import { SeriesPage } from "./pages/SeriesPage.tsx";
 import { UploadPage } from "./pages/UploadPage.tsx";
@@ -39,6 +42,10 @@ function Page() {
       return <HomePage />;
     case "all-videos":
       return <AllVideosPage />;
+    case "all-series":
+      return <AllSeriesPage />;
+    case "all-playlists":
+      return <AllPlaylistsPage />;
     case "search":
       return <SearchPage />;
     case "upload":
@@ -55,6 +62,8 @@ function Page() {
       return <VideoEditPage key={route.id} id={route.id} />;
     case "series":
       return <SeriesPage key={route.id} id={route.id} />;
+    case "playlist":
+      return <PlaylistPage key={route.id} id={route.id} />;
     case "user":
       return <UserPage key={route.id} id={route.id} />;
     case "not-found":

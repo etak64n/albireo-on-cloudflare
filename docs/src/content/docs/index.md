@@ -10,7 +10,7 @@ Try the [demo](/albireo/), which shows every page with sample data.
 
 ## In short
 
-- albireo is one Cloudflare Worker that serves a browser app and an API. D1 holds the library: videos, people, series, comments, ratings, watch history, attachments, and a search index.
+- albireo is one Cloudflare Worker that serves a browser app and an API. D1 holds the library: videos, people, series, playlists, comments, ratings, watch history, attachments, and a search index.
 - Videos and attached files stay in your S3-compatible bucket as you uploaded them. The browser sends and reads them directly, so their bytes never pass through the Worker.
 - Cloudflare Access decides who can open the library. albireo keeps a profile for each person who signs in, but it has no passwords of its own.
 
@@ -24,9 +24,10 @@ albireo has these features.
 2. [Home and lists](guides/home-and-lists/)
 3. [Search](guides/search/)
 4. [Series](guides/series/)
-5. [Play](guides/play/)
-6. [Ratings and comments](guides/ratings-and-comments/)
-7. [Attachments](guides/attachments/)
-8. [Channels](guides/channels/)
+5. [Playlists](guides/playlists/)
+6. [Play](guides/play/)
+7. [Ratings and comments](guides/ratings-and-comments/)
+8. [Attachments](guides/attachments/)
+9. [Channels](guides/channels/)
 
 [People and permissions](guides/people-and-permissions/) describes who can do what.

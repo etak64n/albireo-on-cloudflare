@@ -370,6 +370,71 @@ export interface MoveEpisodeRequest {
   direction: "earlier" | "later";
 }
 
+/** A playlist as lists show it. */
+export interface PlaylistSummary {
+  id: string;
+  title: string;
+  owner: UserSummary;
+  /** The thumbnail of the first video that has one. */
+  coverUrl: string | null;
+  updatedAt: string;
+}
+
+/** A video of a playlist. */
+export interface PlaylistVideo extends VideoSummary {
+  /** 1 for the first ready video of the playlist. */
+  position: number;
+}
+
+export interface PlaylistDetail {
+  id: string;
+  title: string;
+  description: string;
+  owner: UserSummary;
+  createdAt: string;
+  updatedAt: string;
+  /** Whether the signed-in person can change the playlist: its owner or an admin. */
+  canEdit: boolean;
+  videos: PlaylistVideo[];
+}
+
+export interface ListPlaylistsResponse {
+  playlists: PlaylistSummary[];
+}
+
+export interface PlaylistResponse {
+  playlist: PlaylistDetail;
+}
+
+export interface CreatePlaylistRequest {
+  title: string;
+  description: string;
+}
+
+export interface UpdatePlaylistRequest {
+  title?: string;
+  description?: string;
+}
+
+export interface AddToPlaylistRequest {
+  videoId: string;
+}
+
+export interface MovePlaylistVideoRequest {
+  direction: "earlier" | "later";
+}
+
+/** A playlist of the signed-in person, and whether it holds the video. */
+export interface PlaylistChoice {
+  id: string;
+  title: string;
+  hasVideo: boolean;
+}
+
+export interface PlaylistChoicesResponse {
+  playlists: PlaylistChoice[];
+}
+
 export interface ApiErrorBody {
   error: { code: string; message: string };
 }

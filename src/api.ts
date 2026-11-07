@@ -1,22 +1,28 @@
 // Calls the albireo API from the browser.
 
 import type {
+  AddToPlaylistRequest,
   ApiErrorBody,
   AttachmentResponse,
   CommentResponse,
   CompleteUploadRequest,
   CreateCommentRequest,
+  CreatePlaylistRequest,
   CreateSeriesRequest,
   CreateUploadRequest,
   CreateUploadResponse,
   HistoryResponse,
   ImageUploadResponse,
   ListCommentsResponse,
+  ListPlaylistsResponse,
   ListSeriesResponse,
   ListVideosResponse,
   MeResponse,
   MoveEpisodeRequest,
+  MovePlaylistVideoRequest,
   PartUrlsResponse,
+  PlaylistChoicesResponse,
+  PlaylistResponse,
   RateVideoRequest,
   RatingResponse,
   RandomVideosResponse,
@@ -29,6 +35,7 @@ import type {
   SignInResponse,
   ThumbnailUploadResponse,
   UpdateMeRequest,
+  UpdatePlaylistRequest,
   UpdateSeriesRequest,
   UpdateVideoRequest,
   UserResponse,
@@ -159,4 +166,20 @@ export const api = {
     request<SeriesResponse>(`/api/series/${seriesId}/episodes/${videoId}/move`, "POST", { direction }),
   removeEpisode: (seriesId: string, videoId: string) =>
     request<SeriesResponse>(`/api/series/${seriesId}/episodes/${videoId}`, "DELETE"),
+
+  listPlaylists: (ownerId: string | null = null) =>
+    request<ListPlaylistsResponse>(ownerId === null ? "/api/playlists" : `/api/playlists?owner=${ownerId}`, "GET"),
+  createPlaylist: (playlist: CreatePlaylistRequest) => request<PlaylistResponse>("/api/playlists", "POST", playlist),
+  getPlaylist: (id: string) => request<PlaylistResponse>(`/api/playlists/${id}`, "GET"),
+  updatePlaylist: (id: string, changes: UpdatePlaylistRequest) => request<PlaylistResponse>(`/api/playlists/${id}`, "PATCH", changes),
+  /** Deletes a playlist. Its videos stay in the library. */
+  deletePlaylist: (id: string) => request<void>(`/api/playlists/${id}`, "DELETE"),
+  addToPlaylist: (playlistId: string, videoId: string) =>
+    request<PlaylistResponse>(`/api/playlists/${playlistId}/videos`, "POST", { videoId } satisfies AddToPlaylistRequest),
+  removeFromPlaylist: (playlistId: string, videoId: string) =>
+    request<PlaylistResponse>(`/api/playlists/${playlistId}/videos/${videoId}`, "DELETE"),
+  movePlaylistVideo: (playlistId: string, videoId: string, direction: MovePlaylistVideoRequest["direction"]) =>
+    request<PlaylistResponse>(`/api/playlists/${playlistId}/videos/${videoId}/move`, "POST", { direction }),
+  /** The playlists of the signed-in person, each with whether it holds the video. */
+  playlistChoices: (videoId: string) => request<PlaylistChoicesResponse>(`/api/videos/${videoId}/playlists`, "GET"),
 };

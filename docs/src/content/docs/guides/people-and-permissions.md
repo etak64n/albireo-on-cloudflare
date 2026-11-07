@@ -15,5 +15,6 @@ People can do these things (worker/app.ts, header comment).
 - Admins edit and delete every video and every series. The `admins` setting lists them by email.
 - A comment can be deleted by its author, the uploader of the video, and admins.
 - The uploader of a video and admins attach files to it and remove them. Everyone previews and downloads them.
+- Everyone makes playlists of any videos, and sees the playlists of everyone. The owner of a playlist and admins change and delete it.
 
 An Access token without an email, such as a service token, gets a 401 answer, because albireo needs a person behind every request.

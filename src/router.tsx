@@ -6,6 +6,8 @@ import { ID_PATTERN } from "../shared/api.ts";
 export type Route =
   | { name: "home" }
   | { name: "all-videos" }
+  | { name: "all-series" }
+  | { name: "all-playlists" }
   | { name: "history" }
   | { name: "search" }
   | { name: "upload" }
@@ -14,10 +16,11 @@ export type Route =
   | { name: "video"; id: string }
   | { name: "video-edit"; id: string }
   | { name: "series"; id: string }
+  | { name: "playlist"; id: string }
   | { name: "user"; id: string }
   | { name: "not-found" };
 
-const PAGES = { videos: "video", series: "series", users: "user" } as const;
+const PAGES = { videos: "video", series: "series", playlists: "playlist", users: "user" } as const;
 
 /**
  * Where the app lives: "" on its own domain, and "/albireo" for the demo on GitHub Pages,
@@ -28,6 +31,8 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 export function matchRoute(pathname: string): Route {
   if (pathname === "/") return { name: "home" };
   if (pathname === "/videos") return { name: "all-videos" };
+  if (pathname === "/series") return { name: "all-series" };
+  if (pathname === "/playlists") return { name: "all-playlists" };
   if (pathname === "/history") return { name: "history" };
   if (pathname === "/search") return { name: "search" };
   if (pathname === "/upload") return { name: "upload" };
@@ -35,7 +40,7 @@ export function matchRoute(pathname: string): Route {
   if (pathname === "/settings/account") return { name: "account" };
   const edit = /^\/videos\/([^/]+)\/edit$/.exec(pathname)?.[1];
   if (edit !== undefined && ID_PATTERN.test(edit)) return { name: "video-edit", id: edit };
-  const match = /^\/(videos|series|users)\/([^/]+)$/.exec(pathname);
+  const match = /^\/(videos|series|playlists|users)\/([^/]+)$/.exec(pathname);
   const page = match?.[1] as keyof typeof PAGES | undefined;
   const id = match?.[2];
   if (page !== undefined && id !== undefined && ID_PATTERN.test(id)) return { name: PAGES[page], id };

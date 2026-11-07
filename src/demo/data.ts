@@ -46,6 +46,17 @@ export interface DemoSeries {
   updatedAt: string;
 }
 
+export interface DemoPlaylist {
+  id: string;
+  title: string;
+  description: string;
+  ownerId: string;
+  createdAt: string;
+  updatedAt: string;
+  /** The videos of the playlist, in their order. */
+  videoIds: string[];
+}
+
 export interface DemoComment {
   id: string;
   videoId: string;
@@ -71,6 +82,7 @@ export interface DemoLibrary {
   people: DemoPerson[];
   videos: DemoVideo[];
   series: DemoSeries[];
+  playlists: DemoPlaylist[];
   comments: DemoComment[];
   ratings: DemoRating[];
   history: DemoWatch[];
@@ -106,6 +118,12 @@ const VIDEOS = {
 const SERIES = {
   tips: "s8k3p1x6v9m2c7wb",
   updates: "t4n9z2q7h1w5r8dk",
+};
+
+const PLAYLISTS = {
+  teammates: "l3w8q1z6k9v2c5nr",
+  reviews: "l7m2x9c4p1t6h8zb",
+  calm: "l5r1k8w3n7q2v9dx",
 };
 
 const HOUR_MS = 3_600_000;
@@ -328,6 +346,35 @@ export function createLibrary(now: Date): DemoLibrary {
         ownerId: PEOPLE.kenji,
         createdAt: ago(91),
         updatedAt: ago(52, 4),
+      },
+    ],
+    playlists: [
+      {
+        id: PLAYLISTS.teammates,
+        title: "For new teammates",
+        description: "What to watch in the first week: the plan for the quarter, how the product works, and how we handle trouble.",
+        ownerId: PEOPLE.alex,
+        createdAt: ago(10),
+        updatedAt: ago(2, 5),
+        videoIds: [VIDEOS.kickoff, VIDEOS.uploads, VIDEOS.incident, VIDEOS.checklist],
+      },
+      {
+        id: PLAYLISTS.reviews,
+        title: "Before a design review",
+        description: "The tips and the screens to look at again before we review a design.",
+        ownerId: PEOPLE.daniel,
+        createdAt: ago(12),
+        updatedAt: ago(3, 1),
+        videoIds: [VIDEOS.tipColors, VIDEOS.tipCharts, VIDEOS.checkout],
+      },
+      {
+        id: PLAYLISTS.calm,
+        title: "Calm loops",
+        description: "For the screen in the lobby, and for a short break.",
+        ownerId: PEOPLE.lucia,
+        createdAt: ago(18),
+        updatedAt: ago(7),
+        videoIds: [VIDEOS.lobby, VIDEOS.breathing],
       },
     ],
     comments: [

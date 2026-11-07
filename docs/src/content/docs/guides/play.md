@@ -3,13 +3,16 @@ title: "Play"
 description: "The video page and its player."
 ---
 
-The video page has five parts, from the top (src/pages/VideoPage.tsx).
+The video page has six parts, from the top (src/pages/VideoPage.tsx).
 
 1. The player
-2. The episodes of the series, in a list that marks the episode that plays, when the video is in a series
-3. The title, the uploader, and the rating
-4. The length, the resolution, the date, and the description
-5. The attachments and the comments
+2. The videos of the playlist, in a list that marks the video that plays, when the video plays in a playlist
+3. The episodes of the series, in a list that marks the episode that plays, when the video is in a series
+4. The title with Add to playlist, the uploader, and the rating
+5. The length, the resolution, the date, and the description
+6. The attachments and the comments
+
+When a video ends, the next video of its playlist starts, or without a playlist, the next episode of its series.
 
 The player is Video.js 10 with its neutral skin (src/components/VideoPlayer.tsx).
 It changes the playback speed and plays in picture-in-picture and in full screen.

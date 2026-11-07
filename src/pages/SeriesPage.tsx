@@ -75,7 +75,7 @@ export function SeriesPage({ id }: { id: string }) {
       ) : (
         <>
           <div className="grid gap-6">
-            <Breadcrumb to="/videos">{t.common.allVideos}</Breadcrumb>
+            <Breadcrumb to="/series">{t.common.series}</Breadcrumb>
             {editing ? (
               <SeriesEditForm
                 series={series}
@@ -132,7 +132,7 @@ export function SeriesPage({ id }: { id: string }) {
             onConfirm={async () => {
               await api.deleteSeries(series.id);
               await refresh();
-              navigate("/videos");
+              navigate("/series");
             }}
           >
             <p className="text-sm">{t.series.deleteKeepsVideos}</p>
