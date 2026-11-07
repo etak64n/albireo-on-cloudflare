@@ -10,7 +10,7 @@ import { useT } from "../../i18n.ts";
 import { cn } from "../../lib/utils.ts";
 
 /** A menu of more options than this has a search field at its top. */
-const SEARCH_ABOVE = 10;
+export const SEARCH_ABOVE = 10;
 
 export interface SelectOption<T extends string> {
   value: T;
@@ -20,7 +20,7 @@ export interface SelectOption<T extends string> {
 }
 
 /** The text to search: without case, and with the full-width and half-width forms alike. */
-function searchable(text: string): string {
+export function searchable(text: string): string {
   return text.normalize("NFKC").toLowerCase();
 }
 

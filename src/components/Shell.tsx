@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronRight, ChevronUp, History, House, KeyRound, Layers, LayoutGrid, ListVideo, LogOut, Menu as MenuIcon, Plus, Search, Settings, Upload, UserRound, X } from "lucide-react";
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { ArrowRight, ChevronRight, History, House, KeyRound, Layers, LayoutGrid, ListVideo, LogOut, Menu as MenuIcon, Plus, Search, Settings, Upload, UserRound, X } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import appearance from "virtual:albireo-appearance";
 import { SEARCH_QUERY_MAX_LENGTH, TITLE_MAX_LENGTH } from "../../shared/api.ts";
 import { api } from "../api.ts";
@@ -187,12 +187,9 @@ function AccountMenu() {
   );
 }
 
-// Each group of the sidebar lists this many, the ones changed last, until Show all lists every one.
+// Each group of the sidebar lists this many, the ones changed last, so the sidebar stays short
+// however many there are. The page of the group lists every one.
 const SIDEBAR_ITEMS = 5;
-
-// Whether a group of the sidebar lists every one. Each page draws the sidebar anew, so the
-// choice is kept here until the page loads again, and the list stays open from page to page.
-const everyItemShown = { series: false, playlists: false };
 
 /** A row after the items of a group in the sidebar: an action, quieter than the pages. */
 const SIDEBAR_ACTION =
@@ -236,9 +233,9 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
       </nav>
       {error !== "" && <p className="text-xs font-semibold text-critical">{error}</p>}
       <SidebarGroup
-        group="series"
         heading={t.common.series}
         listPath="/series"
+        allLabel={t.shell.allSeries}
         items={series}
         pathOf={(id) => `/series/${id}`}
         icon={<Layers />}
@@ -247,9 +244,9 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
         create={async (title) => `/series/${(await api.createSeries({ title, description: "" })).series.id}`}
       />
       <SidebarGroup
-        group="playlists"
         heading={t.common.playlists}
         listPath="/playlists"
+        allLabel={t.shell.allPlaylists}
         items={playlists}
         pathOf={(id) => `/playlists/${id}`}
         icon={<ListVideo />}
@@ -263,13 +260,13 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
 
 /**
  * A group of the sidebar, the series or the playlists: a heading that opens the page that lists
- * them, the ones changed last, Show all under them for the rest, and a last row that opens the
- * form for a new one in its place.
+ * them, the 5 changed last, a row that opens that page when there are more, and a last row that
+ * opens the form for a new one in its place.
  */
 function SidebarGroup({
-  group,
   heading,
   listPath,
+  allLabel,
   items,
   pathOf,
   icon,
@@ -277,10 +274,11 @@ function SidebarGroup({
   titleLabel,
   create,
 }: {
-  group: keyof typeof everyItemShown;
   heading: string;
   /** The page that lists them. */
   listPath: string;
+  /** The row that opens the page when the sidebar shows only some of them. */
+  allLabel: string;
   /** Null until the library loads. */
   items: { id: string; title: string }[] | null;
   pathOf: (id: string) => string;
@@ -293,15 +291,8 @@ function SidebarGroup({
   const t = useT();
   const pathname = usePathname();
   const [creating, setCreating] = useState(false);
-  const [showAll, setShowAll] = useState(() => everyItemShown[group]);
-  const listId = useId();
   const hasMore = items !== null && items.length > SIDEBAR_ITEMS;
-  const listed = items === null || showAll ? items : items.slice(0, SIDEBAR_ITEMS);
-
-  function toggleAll() {
-    everyItemShown[group] = !showAll;
-    setShowAll(everyItemShown[group]);
-  }
+  const listed = items?.slice(0, SIDEBAR_ITEMS) ?? null;
 
   return (
     <div className="grid gap-1">
@@ -319,7 +310,7 @@ function SidebarGroup({
         </Link>
       </h2>
       {listed !== null && listed.length > 0 && (
-        <nav id={listId} className="-mx-1 grid gap-0.5" aria-label={heading}>
+        <nav className="-mx-1 grid gap-0.5" aria-label={heading}>
           {listed.map((item) => (
             <NavLink key={item.id} to={pathOf(item.id)} current={pathname === pathOf(item.id)} icon={icon}>
               {item.title}
@@ -328,10 +319,10 @@ function SidebarGroup({
         </nav>
       )}
       {hasMore && (
-        <button type="button" onClick={toggleAll} aria-expanded={showAll} aria-controls={listId} className={SIDEBAR_ACTION}>
-          {showAll ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
-          <span className="truncate">{showAll ? t.shell.showFewer : t.shell.showAll}</span>
-        </button>
+        <Link to={listPath} className={SIDEBAR_ACTION}>
+          <ArrowRight aria-hidden="true" />
+          <span className="truncate">{allLabel}</span>
+        </Link>
       )}
       {creating ? (
         <NewItemForm titleLabel={titleLabel} create={create} onDone={() => setCreating(false)} />

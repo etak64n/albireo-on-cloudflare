@@ -6,7 +6,7 @@ description: "Videos grouped as numbered episodes."
 A series groups videos as numbered episodes, such as the recordings of a course (worker/app.ts, src/pages/SeriesPage.tsx).
 
 - Everyone sees every series, and a video belongs to at most one series. A list of videos that holds any video, in any number of lists, is a [playlist](../playlists/).
-- Series (`/series`) lists every series, from the one changed last. The heading Series in the sidebar opens it, and the page of a series leads back to it.
+- Series (`/series`) lists every series, from the one changed last. The heading Series in the sidebar opens it, as does All series under the 5 series that the sidebar lists, and the page of a series leads back to it.
 - New series, at the end of the series in the sidebar, makes a series from its title. The new series comes first in the sidebar.
 - The episodes keep the order in which they joined. The creator of the series and admins move them up and down.
 - Anyone can add their own videos to any series: from the edit page of a video, or by uploading from the page of the series. Upload on that page opens the upload page with the series chosen. Videos dropped on the page of the series join it at once.

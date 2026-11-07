@@ -7,13 +7,15 @@ import { useLibrary } from "../library.tsx";
 import { Button } from "./ui/button.tsx";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "./ui/dialog.tsx";
 import { Input } from "./ui/field.tsx";
+import { SEARCH_ABOVE, searchable } from "./ui/select.tsx";
 import { Skeleton } from "./ui/skeleton.tsx";
 
 /**
  * Puts the video in the playlists of the signed-in person and takes it out of them. The
- * button opens their playlists, each with a box that shows whether it holds the video, and
- * a row that makes a new playlist with the video in it. On small screens the button shows
- * its icon only.
+ * button opens their playlists from the one changed last, each with a box that shows whether
+ * it holds the video, and a row that makes a new playlist with the video in it. More than 10
+ * playlists get a search field at the top, as the menus of select fields do. On small screens
+ * the button shows its icon only.
  */
 export function AddToPlaylist({ videoId }: { videoId: string }) {
   const t = useT();
@@ -49,6 +51,7 @@ function PlaylistChoices({ videoId }: { videoId: string }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
+  const [query, setQuery] = useState("");
   const [error, setError] = useState("");
   // When the form for a new playlist closes, focus goes back to the row that opened it, not to the dialog.
   const newRow = useRef<HTMLButtonElement>(null);
@@ -113,17 +116,32 @@ function PlaylistChoices({ videoId }: { videoId: string }) {
     }
   }
 
+  const withSearch = choices !== null && choices.length > SEARCH_ABOVE;
+  const words = searchable(query.trim());
+  const shown = choices === null || words === "" ? choices : choices.filter((choice) => searchable(choice.title).includes(words));
+
   return (
     <div className="grid gap-3">
+      {withSearch && (
+        <input
+          type="text"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t.shell.search}
+          aria-label={t.shell.search}
+          autoComplete="off"
+          className="field"
+        />
+      )}
       {choices === null && error === "" && (
         <div className="grid gap-2" role="status" aria-label={t.common.loading}>
           <Skeleton className="h-8" />
           <Skeleton className="h-8" />
         </div>
       )}
-      {choices !== null && choices.length > 0 && (
+      {shown !== null && shown.length > 0 && (
         <ul className="-mx-2 grid max-h-72 gap-0.5 overflow-y-auto">
-          {choices.map((choice) => (
+          {shown.map((choice) => (
             <li key={choice.id}>
               <label className="flex h-9 cursor-pointer items-center gap-3 rounded-sm px-2 text-sm text-strong transition-colors duration-150 hover:bg-surface-hover pointer-coarse:h-11">
                 <input

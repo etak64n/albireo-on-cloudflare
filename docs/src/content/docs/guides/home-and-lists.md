@@ -34,7 +34,7 @@ History (`/history`) lists the videos that the person watched, from the last wat
 The player records a video when its playback starts, and each person sees only their own history (worker/app.ts).
 
 The sidebar on the left links to the three lists, to the upload page, to the series, and to the playlists of the signed-in person.
-The headings Series and Playlists open the pages that list every series (`/series`) and every playlist of everyone (`/playlists`).
-Under each heading, the sidebar lists the 5 changed last, a series by its episodes or its title and description, and Show all under them lists every one, from the one changed last. The list stays open from page to page until the page loads again (src/components/Shell.tsx).
+The headings Series and Playlists open the pages that list every series (`/series`) and the playlists (`/playlists`).
+Under each heading, the sidebar lists the 5 changed last, a series by its episodes or its title and description, so it stays short however many there are. With more than 5, All series or All playlists under them opens the page that lists every one (src/components/Shell.tsx).
 On screens narrower than 1024px, the sidebar hides, and the menu button in the upper left corner opens it over the page.
 Dates show as YYYY/MM/DD (src/lib/format.ts, `formatDate`).
