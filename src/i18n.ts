@@ -74,6 +74,7 @@ const en = {
     storageAnswered: (status: number) => `The storage service answered HTTP ${status}.`,
     unreadable: "The file could not be read. Check the network and the bucket's CORS rules.",
     pdfFailed: (reason: string) => `The PDF could not be opened: ${reason}`,
+    firstRows: (count: number) => `The first ${count.toLocaleString("en")} rows.`,
   },
   home: {
     recommended: "Recommended",
@@ -244,6 +245,7 @@ const ja: Messages = {
     storageAnswered: (status) => `ストレージサービスが HTTP ${status} を返しました。`,
     unreadable: "ファイルを読み込めませんでした。ネットワークとバケットの CORS ルールを確認してください。",
     pdfFailed: (reason) => `PDF を開けませんでした：${reason}`,
+    firstRows: (count) => `最初の ${count.toLocaleString("ja")} 行です。`,
   },
   home: {
     recommended: "おすすめ",

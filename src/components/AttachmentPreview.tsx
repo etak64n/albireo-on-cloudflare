@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { lazy, Suspense } from "react";
 import type { VideoAttachment } from "../../shared/api.ts";
 import { useT } from "../i18n.ts";
-import { previewKindOf } from "../lib/attachments.ts";
+import { codeLanguageOf, previewKindOf } from "../lib/attachments.ts";
 import { DownloadButton } from "./DownloadButton.tsx";
 import { Button } from "./ui/button.tsx";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "./ui/dialog.tsx";
@@ -14,6 +14,8 @@ const PdfPreview = lazy(() => import("./previews/PdfPreview.tsx"));
 const SlidesPreview = lazy(() => import("./previews/SlidesPreview.tsx"));
 const MarkdownPreview = lazy(() => import("./previews/MarkdownPreview.tsx"));
 const TextPreview = lazy(() => import("./previews/TextPreview.tsx"));
+const CsvPreview = lazy(() => import("./previews/CsvPreview.tsx"));
+const CodePreview = lazy(() => import("./previews/CodePreview.tsx"));
 
 /** An attachment over the page, almost as large as the window, with its download button. */
 export function AttachmentPreview({ attachment, onClose }: { attachment: VideoAttachment | null; onClose: () => void }) {
@@ -39,6 +41,8 @@ export function AttachmentPreview({ attachment, onClose }: { attachment: VideoAt
                 {kind === "slides" && <SlidesPreview url={attachment.viewUrl} />}
                 {kind === "markdown" && <MarkdownPreview url={attachment.viewUrl} />}
                 {kind === "text" && <TextPreview url={attachment.viewUrl} />}
+                {kind === "csv" && <CsvPreview url={attachment.viewUrl} />}
+                {kind === "code" && <CodePreview url={attachment.viewUrl} language={codeLanguageOf(attachment.fileName) ?? "plaintext"} />}
                 {kind === "image" && (
                   <div className="grid h-full place-items-center p-4">
                     <img src={attachment.viewUrl} alt={attachment.fileName} className="max-h-full max-w-full object-contain" />

@@ -14,7 +14,9 @@ The Preview button opens the file over the page (src/components/AttachmentPrevie
 - PDF: every page, drawn by pdf.js through react-pdf. Unlike a PDF in a frame, this also shows every page on iPhone and iPad.
 - PowerPoint (.pptx and .ppt): @extend-ai/react-pptx. albireo serves its WebAssembly parser itself, so the file goes to no other site.
 - Markdown: react-markdown with GitHub's tables and task lists (remark-gfm). HTML in the file stays text.
-- Text and CSV: as text
+- Text: as text
+- CSV: as a table, with the first row as its head and columns of numbers to the right. A long file shows its first 2,000 rows.
+- JSON and code: in colors by highlight.js, and JSON laid out with two spaces. The code is JavaScript, TypeScript, Python, Ruby, Go, Rust, Java, Kotlin, Swift, C, C++, C#, PHP, shell, SQL, YAML, TOML, INI, HTML, XML, SVG, CSS, SCSS, or a diff, by the extension of the file (src/lib/attachments.ts).
 - PNG, JPEG, GIF, and WebP: as images
 
 Word, Excel, and other files have no preview, and they download only.

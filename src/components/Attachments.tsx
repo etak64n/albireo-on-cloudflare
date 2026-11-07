@@ -1,4 +1,4 @@
-import { Eye, File, FileImage, FileText, Paperclip, Presentation, Trash2 } from "lucide-react";
+import { Eye, File, FileCode, FileImage, FileSpreadsheet, FileText, Paperclip, Presentation, Trash2 } from "lucide-react";
 import { useRef, useState, type ChangeEvent } from "react";
 import { ATTACHMENT_MAX_BYTES, type VideoAttachment, type VideoDetail } from "../../shared/api.ts";
 import { api } from "../api.ts";
@@ -131,6 +131,8 @@ function KindIcon({ kind }: { kind: PreviewKind | null }) {
   const className = "size-4 shrink-0 text-subdued";
   if (kind === "slides") return <Presentation className={className} aria-hidden="true" />;
   if (kind === "image") return <FileImage className={className} aria-hidden="true" />;
+  if (kind === "csv") return <FileSpreadsheet className={className} aria-hidden="true" />;
+  if (kind === "code") return <FileCode className={className} aria-hidden="true" />;
   if (kind === null) return <File className={className} aria-hidden="true" />;
   return <FileText className={className} aria-hidden="true" />;
 }
