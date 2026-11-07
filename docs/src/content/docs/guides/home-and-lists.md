@@ -18,6 +18,8 @@ The recommendations come in this order, up to 48 videos (worker/app.ts, `recomme
 
 All videos (`/videos`) lists every series, then every video from the newest, 48 per page (worker/videos.ts, shared/api.ts).
 
+Before the library has its first video, Home and All videos say that it has none yet, with a button that uploads one (src/components/EmptyLibrary.tsx).
+
 History (`/history`) lists the videos that the person watched, from the last watched.
 The player records a video when its playback starts, and each person sees only their own history (worker/app.ts).
 

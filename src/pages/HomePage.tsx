@@ -2,6 +2,7 @@ import { Play } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { VideoSummary } from "../../shared/api.ts";
 import { api } from "../api.ts";
+import { EmptyLibrary } from "../components/EmptyLibrary.tsx";
 import { Section } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { Thumbnail } from "../components/Thumbnail.tsx";
@@ -47,6 +48,7 @@ export function HomePage() {
           <VideoGridSkeleton />
         </>
       )}
+      {videos !== null && first === undefined && <EmptyLibrary />}
       {videos !== null &&
         first !== undefined && (
           <>

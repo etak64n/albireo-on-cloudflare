@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { VideoSummary } from "../../shared/api.ts";
 import { api } from "../api.ts";
+import { EmptyLibrary } from "../components/EmptyLibrary.tsx";
 import { PageHeader, Section } from "../components/Page.tsx";
 import { SeriesGrid } from "../components/SeriesGrid.tsx";
 import { Shell } from "../components/Shell.tsx";
@@ -53,7 +54,8 @@ export function AllVideosPage() {
         </Section>
       )}
       {videos === null && error === "" && <VideoGridSkeleton />}
-      {videos !== null && (
+      {videos !== null && videos.length === 0 && <EmptyLibrary />}
+      {videos !== null && videos.length > 0 && (
         <Section title={t.common.videos}>
           <VideoGrid videos={videos} />
           {nextCursor !== null && (

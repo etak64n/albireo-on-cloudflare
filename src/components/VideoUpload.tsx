@@ -9,8 +9,11 @@ import { formatBytes } from "../lib/format.ts";
 import { useUploads } from "../uploads.tsx";
 import { Button } from "./ui/button.tsx";
 
-/** Opens the file picker and uploads the chosen video. */
-export function UploadButton() {
+/**
+ * Opens the file picker and uploads the chosen video. In the top bar, it narrows to its
+ * icon on small screens. Prominent, it is the primary button with its label at every size.
+ */
+export function UploadButton({ prominent = false }: { prominent?: boolean }) {
   const uploader = useUploads();
   const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -24,9 +27,16 @@ export function UploadButton() {
   return (
     <>
       <input ref={inputRef} type="file" accept="video/*" onChange={handleChange} className="hidden" />
-      <Button onClick={() => inputRef.current?.click()} disabled={uploader.progress !== null} aria-label={t.upload.upload} className="max-md:w-7 max-md:px-0">
+      <Button
+        variant={prominent ? "primary" : "secondary"}
+        size={prominent ? "lg" : "md"}
+        onClick={() => inputRef.current?.click()}
+        disabled={uploader.progress !== null}
+        aria-label={t.upload.upload}
+        className={prominent ? undefined : "max-md:w-7 max-md:px-0"}
+      >
         <Upload aria-hidden="true" />
-        <span className="max-md:hidden">{t.upload.upload}</span>
+        <span className={prominent ? undefined : "max-md:hidden"}>{t.upload.upload}</span>
       </Button>
     </>
   );
