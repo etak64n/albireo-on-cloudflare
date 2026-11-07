@@ -132,8 +132,10 @@ const ETAG_MAX_LENGTH = 256;
 const MAX_DURATION_SEC = 10_000_000;
 const MAX_DIMENSION = 100_000;
 // Recommendations look at this many of the newest videos and of the last watched ones,
-// and continue this many series. The limits keep one request quick in a large library.
-const RECOMMENDATION_POOL = 500;
+// and continue this many series. The limits keep the rows that D1 reads for one visit of
+// the home page low in a large library: about two for each video and three for each
+// watched one. The home page shows 48 of them.
+const RECOMMENDATION_POOL = 100;
 const SERIES_TO_CONTINUE = 8;
 // A search takes at most this many words, and pages reach at most this far into the results.
 const SEARCH_MAX_TERMS = 10;

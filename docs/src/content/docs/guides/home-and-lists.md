@@ -10,7 +10,7 @@ albireo has three lists of videos.
 3. History
 
 Home (`/`) recommends videos to the person who signed in. The first video shows large, and the rest follow below it.
-The recommendations come in this order, up to 48 videos (worker/app.ts, `recommend`).
+The recommendations come from the newest 100 videos and the last 100 videos that the person watched, in this order, up to 48 videos (worker/app.ts, `recommend`).
 
 1. In each series that the person is watching, the next episode that they have not watched, from the series watched last, for up to 8 series
 2. The videos that they have not watched: first those of the series and the uploaders that they watched before, then the rest from the newest
