@@ -176,7 +176,7 @@ export default defineAlbireoConfig({
 
 ### 3. Set CORS on the Bucket
 
-The bucket needs CORS settings because the browser uploads files to the bucket and reads attachments from it on another origin. Replace `https://videos.example.com` in `examples/bucket-cors.json` with your domain, then apply the rules to the bucket.
+The bucket needs CORS settings because the browser uploads files to the bucket, and reads attachments and the frames of videos for thumbnails from it, on another origin. Replace `https://videos.example.com` in `examples/bucket-cors.json` with your domain, then apply the rules to the bucket.
 
 ```bash
 # Apply the CORS rules to the bucket with the AWS CLI.

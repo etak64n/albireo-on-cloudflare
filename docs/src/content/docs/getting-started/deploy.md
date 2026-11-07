@@ -15,7 +15,7 @@ You need four things.
 4. An access key for that bucket
 
 CORS (Cross-Origin Resource Sharing) is the browser rule that decides which other sites a page may send requests to.
-The bucket needs CORS settings because the albireo page uploads files to the bucket and reads attachments from it, and the bucket has another origin.
+The bucket needs CORS settings because the albireo page uploads files to the bucket, and reads attachments and the frames of videos for thumbnails from it, and the bucket has another origin.
 
 Give the access key permission to read, write, and delete objects in this bucket only, and to upload objects in parts.
 The Worker signs reads, uploads, and multipart operations with the key, and deletes the files of a video, an attachment, or a picture that someone deletes.
