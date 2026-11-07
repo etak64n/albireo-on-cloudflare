@@ -45,7 +45,12 @@ The policy of albireo allows the bucket of `production.storage`, because the pag
 Let this header reach the browser as the Worker sends it.
 A rule in front of the Worker that sets the header on every hostname of the zone, such as a Transform Rule, replaces the policy of albireo.
 The browser then blocks the requests to the bucket: uploads fail with "Check the network, the bucket's CORS rules, and the Content-Security-Policy of this site", and videos do not play.
-Leave the domain of albireo out of such a rule, or have the rule skip responses that already carry a Content-Security-Policy.
+
+The built files under `/assets/` come from the static assets without the header.
+One of them is the script of the Web Worker that reads slides with WebAssembly, and a policy on the script of a Web Worker applies inside that worker.
+A rule that adds a policy to these files therefore stops the preview of slides, unless its policy allows `'wasm-unsafe-eval'`.
+
+Leave the domain of albireo out of such a rule, or limit the rule to HTML responses that carry no Content-Security-Policy.
 
 ## Steps
 

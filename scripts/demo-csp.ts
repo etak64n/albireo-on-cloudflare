@@ -90,11 +90,14 @@ const CONTENT_TYPES: Record<string, string> = {
   ".woff2": "font/woff2",
 };
 
-/** Serves the demo under its base path, as GitHub Pages does, with the policy on every response. */
+/**
+ * Serves the demo under its base path, as GitHub Pages does. Only the page carries the
+ * policy, as in a deployment, where the files under /assets/ skip the Worker: the script
+ * of a Web Worker, such as the one that reads slides, runs under no policy of its own.
+ */
 function serve(site: string, base: string, policy: string): Promise<Server> {
   const root = resolve(site);
   const server = createServer((request, response) => {
-    response.setHeader("Content-Security-Policy", policy);
     const path = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
     if (!path.startsWith(base)) {
       response.writeHead(404).end();
@@ -115,6 +118,7 @@ function serve(site: string, base: string, policy: string): Promise<Server> {
       file = join(root, "index.html");
       size = statSync(file);
     }
+    if (extname(file) === ".html") response.setHeader("Content-Security-Policy", policy);
     response.writeHead(200, {
       "Content-Type": CONTENT_TYPES[extname(file)] ?? "application/octet-stream",
       "Content-Length": size.size,
