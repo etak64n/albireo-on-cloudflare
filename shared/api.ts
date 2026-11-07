@@ -106,6 +106,12 @@ export interface UserResponse {
   user: UserProfile;
 }
 
+/** A series by its name, which a video in a list names. */
+export interface SeriesLink {
+  id: string;
+  title: string;
+}
+
 /** A ready video as the library page lists it. */
 export interface VideoSummary {
   id: string;
@@ -115,6 +121,14 @@ export interface VideoSummary {
   createdAt: string;
   /** Null for videos that were uploaded before albireo recorded uploaders. */
   uploader: UserSummary | null;
+  /** The series of the video, or null. */
+  series: SeriesLink | null;
+  /** The average stars, such as 4.333, and 0 when nobody rated the video. */
+  ratingAverage: number;
+  ratingCount: number;
+  commentCount: number;
+  /** The attachments that finished uploading. */
+  attachmentCount: number;
 }
 
 /** A video in the history of the signed-in person. */

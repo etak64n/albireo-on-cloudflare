@@ -117,10 +117,13 @@ const en = {
   rating: {
     yourRating: "Your rating",
     stars: (stars: number) => (stars === 1 ? "1 star" : `${stars} stars`),
+    averageOf: (average: number, count: number) =>
+      count === 0 ? "Not rated yet" : `Rated ${average.toFixed(1)} by ${count === 1 ? "1 person" : `${count} people`}`,
     clear: "Clear",
   },
   comments: {
     comments: "Comments",
+    count: (count: number) => (count === 1 ? "1 comment" : `${count} comments`),
     placeholder: "Add a comment",
     comment: "Comment",
     posting: "Posting...",
@@ -130,6 +133,7 @@ const en = {
   },
   attachments: {
     attachments: "Attachments",
+    count: (count: number) => (count === 1 ? "1 attachment" : `${count} attachments`),
     attach: "Attach",
     tooLarge: (size: string) => `Attachments can be at most ${size}.`,
     uploading: (fileName: string, percent: number) => `Uploading ${fileName} ${percent}%`,
@@ -335,11 +339,13 @@ const ja: Messages = {
   },
   rating: {
     yourRating: "あなたの評価",
+    averageOf: (average, count) => (count === 0 ? "まだ評価がありません" : `評価 ${average.toFixed(1)}（${count} 人）`),
     stars: (stars) => `星 ${stars} つ`,
     clear: "取り消す",
   },
   comments: {
     comments: "コメント",
+    count: (count) => `コメント ${count} 件`,
     placeholder: "コメントを追加",
     comment: "コメント",
     posting: "投稿中…",
@@ -349,6 +355,7 @@ const ja: Messages = {
   },
   attachments: {
     attachments: "添付ファイル",
+    count: (count) => `添付ファイル ${count} 件`,
     attach: "添付",
     tooLarge: (size) => `添付ファイルは ${size} までです。`,
     uploading: (fileName, percent) => `${fileName} をアップロード中 ${percent}%`,

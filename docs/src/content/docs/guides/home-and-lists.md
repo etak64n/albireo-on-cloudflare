@@ -26,6 +26,9 @@ All videos (`/videos`) lists every video, 48 per page, in the order that you cho
 The highest rated come by their average stars, with more ratings first among equal averages, and the videos that nobody rated come last.
 The order stays in the address, such as `/videos?sort=rating`.
 
+Each video in a list shows its picture, the uploader, the title, the date, its series, its average rating as stars colored as far as the average, and its comments and attachments as icons with their numbers in a badge (src/components/VideoCard.tsx).
+The videos table keeps the numbers of comments and attachments, which triggers update, so a list reads no comments or attachments (migrations/0013_video_counts.sql).
+
 The lists load their next page by themselves as you scroll near the end, as do the search results, the videos of a person, and the comments (src/components/LoadMore.tsx).
 
 Before the library has its first video, Home and All videos say that it has none yet, with a button that uploads one (src/components/EmptyLibrary.tsx).

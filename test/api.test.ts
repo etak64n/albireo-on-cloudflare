@@ -764,6 +764,43 @@ describe("series", () => {
   });
 });
 
+describe("video summaries", () => {
+  const summaryOf = async (app: TestApp) => (await body<ListVideosResponse>(await app.signedRequest("/api/videos"))).videos[0];
+
+  it("name the series, average the stars, and count the comments and the attachments that finished uploading", async () => {
+    const app = await createTestApp();
+    const { series } = await createSeries(app, "Weekly syncs");
+    const { video } = await uploadVideo(app, "Week 1", MIB, { seriesId: series.id });
+    await app.requestAs(OTHER_EMAIL, `/api/videos/${video.id}/comments`, json({ body: "One" }));
+    const second = await body<CommentResponse>(await app.signedRequest(`/api/videos/${video.id}/comments`, json({ body: "Two" })));
+    await app.requestAs(OTHER_EMAIL, `/api/videos/${video.id}/rating`, json({ stars: 4 }, "PUT"));
+    await app.signedRequest(`/api/videos/${video.id}/rating`, json({ stars: 5 }, "PUT"));
+    const started = await body<StartAttachmentResponse>(
+      await app.signedRequest(`/api/videos/${video.id}/attachments`, json({ fileName: "notes.pdf", fileSize: 10 })),
+    );
+    expect(await summaryOf(app)).toMatchObject({
+      series: { id: series.id, title: "Weekly syncs" },
+      ratingAverage: 4.5,
+      ratingCount: 2,
+      commentCount: 2,
+      attachmentCount: 0,
+    });
+
+    app.store.objects.set(`attachments/${video.id}/${started.attachmentId}`, { size: 10 });
+    expect((await app.signedRequest(`/api/attachments/${started.attachmentId}/commit`, { method: "POST" })).status).toBe(200);
+    expect((await app.signedRequest(`/api/comments/${second.comment.id}`, { method: "DELETE" })).status).toBe(204);
+    expect(await summaryOf(app)).toMatchObject({ commentCount: 1, attachmentCount: 1 });
+    expect((await app.signedRequest(`/api/attachments/${started.attachmentId}`, { method: "DELETE" })).status).toBe(204);
+    expect(await summaryOf(app)).toMatchObject({ commentCount: 1, attachmentCount: 0 });
+  });
+
+  it("have no series, no average, and no counts for a new video out of any series", async () => {
+    const app = await createTestApp();
+    await uploadVideo(app, "Week 1", MIB);
+    expect(await summaryOf(app)).toMatchObject({ series: null, ratingAverage: 0, ratingCount: 0, commentCount: 0, attachmentCount: 0 });
+  });
+});
+
 describe("deleting videos", () => {
   const remove = (app: TestApp, email: string, videoId: string) => app.requestAs(email, `/api/videos/${videoId}`, { method: "DELETE" });
   const rowsOf = async (app: TestApp, videoId: string) => {

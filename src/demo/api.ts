@@ -272,6 +272,8 @@ function canEditSeries(series: DemoSeries): boolean {
 }
 
 function summary(video: DemoVideo): VideoSummary {
+  const series = library.series.find((item) => item.id === video.seriesId);
+  const rating = ratingOf(video.id);
   return {
     id: video.id,
     title: video.title,
@@ -279,6 +281,11 @@ function summary(video: DemoVideo): VideoSummary {
     thumbnailUrl: mediaUrl(MEDIA_PATHS.poster(video.media)),
     createdAt: video.createdAt,
     uploader: personSummary(video.uploaderId),
+    series: series === undefined ? null : { id: series.id, title: series.title },
+    ratingAverage: rating.average ?? 0,
+    ratingCount: rating.count,
+    commentCount: library.comments.filter((comment) => comment.videoId === video.id).length,
+    attachmentCount: video.attachments.length,
   };
 }
 

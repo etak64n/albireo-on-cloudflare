@@ -1175,6 +1175,11 @@ async function toSummary(video: VideoRecord, store: ObjectStore): Promise<VideoS
     thumbnailUrl: await signedOrNull(store, video.thumbnailKey),
     createdAt: video.createdAt,
     uploader: await uploaderOf(video, store),
+    series: video.seriesId === null || video.seriesTitle === null ? null : { id: video.seriesId, title: video.seriesTitle },
+    ratingAverage: video.ratingCount === 0 ? 0 : video.ratingScore / 1000,
+    ratingCount: video.ratingCount,
+    commentCount: video.commentCount,
+    attachmentCount: video.attachmentCount,
   };
 }
 

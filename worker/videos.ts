@@ -27,11 +27,17 @@ export interface VideoRecord {
   uploaderName: string | null;
   uploaderAvatarKey: string | null;
   seriesId: string | null;
+  /** The title of the series of the video, or null. */
+  seriesTitle: string | null;
   seriesPosition: number | null;
   /** How many people rated the video (migrations/0010_video_ratings.sql). */
   ratingCount: number;
   /** The average stars times 1000, rounded down, and 0 when nobody rated the video. */
   ratingScore: number;
+  /** How many comments the video has (migrations/0013_video_counts.sql). */
+  commentCount: number;
+  /** How many attachments the video has, without the ones that still upload. */
+  attachmentCount: number;
 }
 
 export interface NewUpload {
@@ -101,20 +107,24 @@ interface VideoRow {
   uploader_name: string | null;
   uploader_avatar_key: string | null;
   series_id: string | null;
+  series_title: string | null;
   series_position: number | null;
   rating_count: number;
   rating_score: number;
+  comment_count: number;
+  attachment_count: number;
 }
 
 const COLUMNS =
   "id, title, description, status, object_key, upload_id, content_type, file_size, part_size, part_count, "
   + "duration_sec, width, height, thumbnail_key, created_at, updated_at, uploader_id, series_id, series_position, "
-  + "rating_count, rating_score";
+  + "rating_count, rating_score, comment_count, attachment_count";
 
-// Every read joins the uploader, so that lists show names without one query per video.
+// Every read joins the uploader and the series, so that lists show their names without one
+// query per video.
 const SELECT = `SELECT ${COLUMNS.split(", ").map((column) => `v.${column}`).join(", ")},
-    u.display_name AS uploader_name, u.avatar_key AS uploader_avatar_key
-  FROM videos v LEFT JOIN users u ON u.id = v.uploader_id`;
+    u.display_name AS uploader_name, u.avatar_key AS uploader_avatar_key, s.title AS series_title
+  FROM videos v LEFT JOIN users u ON u.id = v.uploader_id LEFT JOIN series s ON s.id = v.series_id`;
 
 export class VideoRepository {
   readonly #db: D1Database;
@@ -129,7 +139,7 @@ export class VideoRepository {
       .prepare(
         `INSERT INTO videos (${COLUMNS}) VALUES (?, ?, ?, 'uploading', ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?, ?, ?, ?, `
           + "CASE WHEN ? IS NULL THEN NULL ELSE "
-          + "(SELECT COALESCE(MAX(series_position), 0) + 1 FROM videos WHERE series_id = ?) END, 0, 0)",
+          + "(SELECT COALESCE(MAX(series_position), 0) + 1 FROM videos WHERE series_id = ?) END, 0, 0, 0, 0)",
       )
       .bind(
         video.id,
@@ -438,8 +448,11 @@ function toRecord(row: VideoRow): VideoRecord {
     uploaderName: row.uploader_name,
     uploaderAvatarKey: row.uploader_avatar_key,
     seriesId: row.series_id,
+    seriesTitle: row.series_title,
     seriesPosition: row.series_position,
     ratingCount: row.rating_count,
     ratingScore: row.rating_score,
+    commentCount: row.comment_count,
+    attachmentCount: row.attachment_count,
   };
 }
