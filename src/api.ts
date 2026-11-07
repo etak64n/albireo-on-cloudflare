@@ -114,6 +114,8 @@ export const api = {
   getRandomVideos: () => request<RandomVideosResponse>("/api/videos/random", "GET"),
   getVideo: (id: string) => request<VideoResponse>(`/api/videos/${id}`, "GET"),
   updateVideo: (id: string, changes: UpdateVideoRequest) => request<VideoResponse>(`/api/videos/${id}`, "PATCH", changes),
+  /** Deletes a video for good, with its files in the bucket. */
+  deleteVideo: (id: string) => request<void>(`/api/videos/${id}`, "DELETE"),
   search: (query: string, cursor: string | null) => {
     const search = new URLSearchParams({ q: query });
     if (cursor !== null) search.set("cursor", cursor);

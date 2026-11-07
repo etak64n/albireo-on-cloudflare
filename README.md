@@ -81,7 +81,7 @@ To try albireo on your machine without a Cloudflare account or a bucket, see [Tr
 | **Cloudflare account** | Holds the zone of your domain. |
 | **Zero Trust organization** | In that Cloudflare account; runs the sign-in of Cloudflare Access. |
 | **S3-compatible bucket** | Supports Signature Version 4 presigned URLs, multipart uploads, and CORS. |
-| **Access key** | Has permission to read and write objects in that bucket only. |
+| **Access key** | Has permission to read, write, and delete objects in that bucket only. |
 | **Node.js** | 22.23+, 24.22+, or 26.12+. |
 | **pnpm** | 12.16+. |
 

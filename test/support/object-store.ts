@@ -1,7 +1,7 @@
 // A storage service in memory. It records multipart uploads and objects, and
 // returns signed URLs that name the operation, so tests can check them.
 
-import type { CompletedPart, ObjectStore } from "../../worker/storage.ts";
+import { StorageError, type CompletedPart, type ObjectStore } from "../../worker/storage.ts";
 
 interface Upload {
   key: string;
@@ -13,6 +13,10 @@ interface Upload {
 export class MemoryObjectStore implements ObjectStore {
   readonly uploads = new Map<string, Upload>();
   readonly objects = new Map<string, { size: number }>();
+  /** The keys that deleteObject was called with, in order. */
+  readonly deletedKeys: string[] = [];
+  /** A key whose deletion fails, as a storage service that refuses it does. */
+  failDeletionOf: string | null = null;
   /** Size of the object that completing a multipart upload creates. */
   sizeOfCompletedObject = 0;
   #nextUploadId = 1;
@@ -50,6 +54,12 @@ export class MemoryObjectStore implements ObjectStore {
 
   async headObject(key: string): Promise<{ size: number } | null> {
     return this.objects.get(key) ?? null;
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    if (key === this.failDeletionOf) throw new StorageError("DeleteObject failed with HTTP 403 (AccessDenied: Access Denied).");
+    this.deletedKeys.push(key);
+    this.objects.delete(key);
   }
 
   #openUpload(key: string, uploadId: string): Upload {

@@ -108,6 +108,8 @@ const en = {
     episodeOf: (episode: number, count: number) => `Episode ${episode} of ${count}`,
     noSeries: "No series",
     editVideo: "Edit video",
+    deleteQuestion: "Delete this video?",
+    deleteRemovesAll: "Its file, thumbnail, attachments, comments, and ratings are deleted for good.",
   },
   rating: {
     yourRating: "Your rating",
@@ -294,6 +296,8 @@ const ja: Messages = {
     episodeOf: (episode, count) => `第 ${episode} 回（全 ${count} 回）`,
     noSeries: "シリーズなし",
     editVideo: "動画を編集",
+    deleteQuestion: "この動画を削除しますか？",
+    deleteRemovesAll: "動画のファイル、サムネイル、添付ファイル、コメント、評価もすべて消え、元に戻せません。",
   },
   rating: {
     yourRating: "あなたの評価",

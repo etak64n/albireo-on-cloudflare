@@ -1,23 +1,30 @@
 import { useEffect, useState } from "react";
 import type { VideoDetail } from "../../shared/api.ts";
 import { ApiError, api } from "../api.ts";
+import { ConfirmDialog } from "../components/ConfirmDialog.tsx";
 import { Breadcrumb, PageHeader } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
+import { Button } from "../components/ui/button.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 import { VideoEditForm } from "../components/VideoEditForm.tsx";
 import { useT } from "../i18n.ts";
 import { usePageTitle } from "../lib/title.ts";
+import { useLibrary } from "../library.tsx";
 import { navigate } from "../router.tsx";
+import { forgetDeletedVideo } from "./HomePage.tsx";
 import { NotFoundPage } from "./NotFoundPage.tsx";
 
 /**
- * The edit page of a video: its title, its description, and its series. Only the uploader
- * of the video and admins can change the video, so only they find the page; the API checks
- * the same. Saving or canceling goes back to the video.
+ * The edit page of a video: its title, its description, and its series, and the deletion of
+ * the video. Only the uploader of the video and admins can change or delete the video, so only
+ * they find the page; the API checks the same. Saving or canceling goes back to the video, and
+ * deleting it goes to all videos.
  */
 export function VideoEditPage({ id }: { id: string }) {
   const [video, setVideo] = useState<VideoDetail | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { refresh } = useLibrary();
   const t = useT();
   usePageTitle(video === null ? null : t.video.editVideo);
 
@@ -52,8 +59,23 @@ export function VideoEditPage({ id }: { id: string }) {
       ) : (
         <div className="grid gap-6">
           <Breadcrumb to={`/videos/${video.id}`}>{video.title}</Breadcrumb>
-          <PageHeader title={t.video.editVideo} />
+          <PageHeader title={t.video.editVideo} actions={<Button onClick={() => setDeleting(true)}>{t.common.delete}</Button>} />
           <VideoEditForm video={video} onSaved={back} onCancel={back} />
+          <ConfirmDialog
+            open={deleting}
+            title={t.video.deleteQuestion}
+            confirmLabel={t.common.delete}
+            onClose={() => setDeleting(false)}
+            onConfirm={async () => {
+              await api.deleteVideo(video.id);
+              forgetDeletedVideo(video.id);
+              // The series of the video changed, which moves it up in the sidebar.
+              if (video.series !== null) await refresh();
+              navigate("/videos");
+            }}
+          >
+            <p className="text-sm">{t.video.deleteRemovesAll}</p>
+          </ConfirmDialog>
         </div>
       )}
     </Shell>

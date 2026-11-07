@@ -58,6 +58,12 @@ export class AttachmentRepository {
     return results.map(toRecord);
   }
 
+  /** Every attachment of a video, also the ones that still upload, whose files can be in the bucket already. */
+  async listAll(videoId: string): Promise<AttachmentRecord[]> {
+    const { results } = await this.#db.prepare(`${SELECT} WHERE video_id = ? ORDER BY created_at, id`).bind(videoId).all<AttachmentRow>();
+    return results.map(toRecord);
+  }
+
   /** Records the size that the storage service reports and shows the attachment. */
   async markReady(id: string, fileSize: number): Promise<boolean> {
     const result = await this.#db
@@ -67,7 +73,7 @@ export class AttachmentRepository {
     return (result.meta.changes ?? 0) > 0;
   }
 
-  // The file stays in the bucket: the access keys of albireo need no permission to delete.
+  /** Deletes the row. The API deletes the file from the bucket before it. */
   async delete(id: string): Promise<boolean> {
     const result = await this.#db.prepare("DELETE FROM attachments WHERE id = ?").bind(id).run();
     return (result.meta.changes ?? 0) > 0;

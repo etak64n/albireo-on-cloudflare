@@ -2,7 +2,8 @@
 //
 // Videos never pass through the Worker. The Worker starts and completes
 // multipart uploads, and signs URLs that the browser uses to send the parts
-// and to play the finished video directly from the storage service.
+// and to play the finished video directly from the storage service. It deletes
+// the files of a video, an attachment, or a picture that someone deletes.
 
 import { AwsClient } from "aws4fetch";
 import type { StorageConfig } from "./runtime-config.ts";
@@ -28,6 +29,8 @@ export interface ObjectStore {
   presignPut(key: string, contentType: string): Promise<string>;
   /** Returns the size of the object, or null when it does not exist. */
   headObject(key: string): Promise<{ size: number } | null>;
+  /** Deletes the object. Deleting a key that holds no object succeeds. */
+  deleteObject(key: string): Promise<void>;
 }
 
 export class StorageError extends Error {
@@ -118,6 +121,13 @@ export class S3ObjectStore implements ObjectStore {
     const size = Number(response.headers.get("content-length"));
     if (!Number.isSafeInteger(size)) throw new StorageError("HeadObject returned no Content-Length.");
     return { size };
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    const response = await this.#send("DeleteObject", objectUrl(this.#storage, key), { method: "DELETE" });
+    const body = await response.text();
+    // S3 answers 204 for a key that holds no object too. Some compatible services answer 404.
+    if (!response.ok && response.status !== 404) throw failure("DeleteObject", response.status, body);
   }
 
   // A request that cannot reach the storage service is a storage failure, not a bug in the Worker.

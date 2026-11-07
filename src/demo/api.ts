@@ -100,6 +100,7 @@ const ROUTES = [
   route("GET", "/api/videos", ({ query }) => listVideos(query.get("uploader"), query.get("cursor"), query.get("sort") ?? "newest")),
   route("GET", "/api/videos/:id", ({ ids: [id = ""] }) => ({ video: detail(findVideo(id)) }) satisfies VideoResponse),
   route("PATCH", "/api/videos/:id", ({ ids: [id = ""], body }) => updateVideo(id, body)),
+  route("DELETE", "/api/videos/:id", ({ ids: [id = ""] }) => deleteVideo(id)),
   route("GET", "/api/search", ({ query }) => search(query.get("q") ?? "", query.get("cursor"))),
   route("PUT", "/api/videos/:id/rating", ({ ids: [id = ""], body }) => rate(id, body)),
   route("DELETE", "/api/videos/:id/rating", ({ ids: [id = ""] }) => clearRating(id)),
@@ -488,6 +489,19 @@ function addComment(videoId: string, body: Fields): CommentResponse {
   const comment = { id: newId(), videoId: video.id, authorId: library.me.id, body: readText(body, "body", 1, COMMENT_MAX_LENGTH, true), createdAt: now() };
   library.comments.push(comment);
   return { comment: toComment(comment) };
+}
+
+// The demo keeps no files, so deleting a video forgets it and everything that points at it.
+function deleteVideo(id: string): undefined {
+  const video = findVideo(id);
+  if (!canEditVideo(video)) throw new ApiError(403, "forbidden", "Only the uploader of the video or an admin can delete it.");
+  library.videos = library.videos.filter((item) => item.id !== video.id);
+  library.comments = library.comments.filter((item) => item.videoId !== video.id);
+  library.ratings = library.ratings.filter((item) => item.videoId !== video.id);
+  library.history = library.history.filter((item) => item.videoId !== video.id);
+  const series = library.series.find((item) => item.id === video.seriesId);
+  if (series !== undefined) series.updatedAt = now();
+  return undefined;
 }
 
 function deleteComment(id: string): undefined {

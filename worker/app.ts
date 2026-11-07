@@ -4,10 +4,11 @@
 // generation as dependencies, so tests can replace them.
 //
 // Everyone who signs in can watch everything, upload videos, rate them, and
-// comment on them. A person edits the videos that they uploaded and the series
-// that they created; admins edit everything. A comment can be deleted by its
-// author, the uploader of the video, and admins. The uploader of a video and admins
-// attach files to it, and everyone downloads them.
+// comment on them. A person edits and deletes the videos that they uploaded and
+// edits the series that they created; admins edit and delete everything. A comment
+// can be deleted by its author, the uploader of the video, and admins. The uploader
+// of a video and admins attach files to it, and everyone downloads them. Deleting a
+// video, an attachment, or a picture deletes its files from the bucket too.
 
 import { Hono } from "hono";
 import type { JWTVerifyGetKey } from "jose";
@@ -284,12 +285,14 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
     return c.json<MeResponse>({ me: await toMe(await reloadViewer(users, viewer), c.get("config"), objectStore) });
   });
 
-  // Goes back to the default person icon. The old picture stays in the bucket until the next upload replaces it.
+  // Goes back to the default person icon, and deletes the picture from the bucket.
   app.delete("/api/me/avatar", async (c) => {
     const viewer = c.get("viewer");
+    const objectStore = store(c.get("config"));
+    await objectStore.deleteObject(avatarKey(viewer.id));
     const users = new UserRepository(c.env.DB);
     await users.setAvatar(viewer.id, null, now());
-    return c.json<MeResponse>({ me: await toMe(await reloadViewer(users, viewer), c.get("config"), store(c.get("config"))) });
+    return c.json<MeResponse>({ me: await toMe(await reloadViewer(users, viewer), c.get("config"), objectStore) });
   });
 
   app.get("/api/users/:id", async (c) => {
@@ -407,6 +410,24 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
     return c.json<VideoResponse>({ video: await toDetail(c.env.DB, edited, viewer, store(c.get("config"))) });
   });
 
+  // Deletes a video for good, with its files in the bucket: the video, its thumbnail, and its
+  // attachments. The files go first, so a deletion that stops halfway leaves the video in the
+  // library, and deleting it again finishes the work.
+  app.delete("/api/videos/:id", async (c) => {
+    const repository = new VideoRepository(c.env.DB);
+    const video = await findReady(repository, pathId(c.req.param("id"), "video"));
+    if (!canEditVideo(c.get("viewer"), video)) throw forbidden("Only the uploader of the video or an admin can delete it.");
+    const attachments = await new AttachmentRepository(c.env.DB).listAll(video.id);
+    // The key of a thumbnail never changes, so this also deletes one that was uploaded and never committed.
+    const keys = [video.objectKey, thumbnailKey(video.id), ...attachments.map((attachment) => attachmentKey(video.id, attachment.id))];
+    const objectStore = store(c.get("config"));
+    await Promise.all(keys.map((key) => objectStore.deleteObject(key)));
+    await repository.delete(video.id);
+    if (video.seriesId !== null) await new SeriesRepository(c.env.DB).touch(video.seriesId, now());
+    log("INFO", "Video deleted", c.get("requestId"), { videoId: video.id, files: keys.length });
+    return c.body(null, 204);
+  });
+
   // Each person gives a video 1 to 5 stars, or takes their rating back.
   app.put("/api/videos/:id/rating", async (c) => {
     const body = await readJsonObject(c.req.raw, ["stars"]);
@@ -499,6 +520,7 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
   app.delete("/api/attachments/:id", async (c) => {
     const attachments = new AttachmentRepository(c.env.DB);
     const attachment = await findAttachment(attachments, new VideoRepository(c.env.DB), pathId(c.req.param("id"), "attachment"), c.get("viewer"));
+    await store(c.get("config")).deleteObject(attachmentKey(attachment.videoId, attachment.id));
     await attachments.delete(attachment.id);
     return c.body(null, 204);
   });

@@ -13,7 +13,21 @@ export function createTestDatabase(): D1Database {
   const db = new DatabaseSync(":memory:");
   const files = readdirSync(MIGRATIONS_DIR).filter((file) => file.endsWith(".sql")).sort();
   for (const file of files) db.exec(readFileSync(`${MIGRATIONS_DIR}${file}`, "utf8"));
-  return { prepare: (query) => statement(db, query, []) };
+  return {
+    prepare: (query) => statement(db, query, []),
+    batch: async (statements) => {
+      db.exec("BEGIN");
+      try {
+        const results: D1Result<unknown>[] = [];
+        for (const prepared of statements) results.push(await prepared.run());
+        db.exec("COMMIT");
+        return results;
+      } catch (error) {
+        db.exec("ROLLBACK");
+        throw error;
+      }
+    },
+  };
 }
 
 function statement(db: DatabaseSync, query: string, values: unknown[]): D1PreparedStatement {

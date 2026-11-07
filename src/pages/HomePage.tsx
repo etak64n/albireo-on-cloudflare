@@ -23,6 +23,11 @@ type HomeMode = "recommended" | "random";
 let loadMode: HomeMode | null = null;
 let shown: { videos: VideoSummary[]; completed: number } | null = null;
 
+/** Takes a deleted video out of the videos that Home keeps, so coming back to Home does not show it. */
+export function forgetDeletedVideo(id: string): void {
+  if (shown !== null) shown = { ...shown, videos: shown.videos.filter((video) => video.id !== id) };
+}
+
 /** The kind of list of this load of the page, the same each time Home opens in it. */
 function modeOfThisLoad(): HomeMode {
   loadMode ??= modeByLastRecommendations(Date.now());

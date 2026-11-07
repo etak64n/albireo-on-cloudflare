@@ -598,6 +598,7 @@ describe("people", () => {
     expect(committed.me.avatarUrl).toBe(`https://storage.test/${key}?op=get`);
     const removed = await body<MeResponse>(await app.signedRequest("/api/me/avatar", { method: "DELETE" }));
     expect(removed.me.avatarUrl).toBeNull();
+    expect(app.store.objects.has(key)).toBe(false);
   });
 
   it("signs in the configured email in local development mode", async () => {
@@ -751,6 +752,74 @@ describe("series", () => {
     const app = await createTestApp();
     const { series } = await createSeries(app, "Retros", OTHER_EMAIL);
     expect((await app.requestAs(ADMIN_EMAIL, `/api/series/${series.id}`, { method: "DELETE" })).status).toBe(204);
+  });
+});
+
+describe("deleting videos", () => {
+  const remove = (app: TestApp, email: string, videoId: string) => app.requestAs(email, `/api/videos/${videoId}`, { method: "DELETE" });
+  const rowsOf = async (app: TestApp, videoId: string) => {
+    const counts: Record<string, unknown> = {};
+    for (const table of ["watch_history", "comments", "ratings", "attachments", "video_search"]) {
+      counts[table] = (await app.env.DB.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE video_id = ?`).bind(videoId).first())?.["n"];
+    }
+    return counts;
+  };
+
+  it("deletes a video for its uploader, with its files and every row that points at it", async () => {
+    const app = await createTestApp();
+    const { series } = await createSeries(app, "Weekly syncs");
+    const { video } = await uploadVideo(app, "Week 1", MIB, { seriesId: series.id });
+    await uploadVideo(app, "Week 2", MIB, { seriesId: series.id });
+    const thumbnail = `thumbnails/${video.id}.jpg`;
+    app.store.objects.set(thumbnail, { size: 10 });
+    const attachment = await body<StartAttachmentResponse>(
+      await app.signedRequest(`/api/videos/${video.id}/attachments`, json({ fileName: "notes.pdf", fileSize: 10 })),
+    );
+    const attachmentKey = `attachments/${video.id}/${attachment.attachmentId}`;
+    app.store.objects.set(attachmentKey, { size: 10 });
+    expect((await app.signedRequest(`/api/attachments/${attachment.attachmentId}/commit`, { method: "POST" })).status).toBe(200);
+    await app.requestAs(OTHER_EMAIL, `/api/videos/${video.id}/comments`, json({ body: "Thanks" }));
+    await app.requestAs(OTHER_EMAIL, `/api/videos/${video.id}/rating`, json({ stars: 4 }, "PUT"));
+    await app.requestAs(OTHER_EMAIL, `/api/videos/${video.id}/watched`, { method: "POST" });
+    expect(await rowsOf(app, video.id)).toEqual({ watch_history: 1, comments: 1, ratings: 1, attachments: 1, video_search: 1 });
+
+    expect((await remove(app, OTHER_EMAIL, video.id)).status).toBe(403);
+    expect((await remove(app, VIEWER_EMAIL, video.id)).status).toBe(204);
+
+    expect((await app.signedRequest(`/api/videos/${video.id}`)).status).toBe(404);
+    const videoKey = `videos/${video.id}/original.mp4`;
+    expect([...app.store.deletedKeys].sort()).toEqual([attachmentKey, thumbnail, videoKey].sort());
+    expect([thumbnail, attachmentKey, videoKey].filter((key) => app.store.objects.has(key))).toEqual([]);
+    expect(await rowsOf(app, video.id)).toEqual({ watch_history: 0, comments: 0, ratings: 0, attachments: 0, video_search: 0 });
+    expect(await episodeTitles(app, series.id)).toEqual(["1. Week 2"]);
+    expect((await remove(app, VIEWER_EMAIL, video.id)).status).toBe(404);
+  });
+
+  it("lets an admin delete the video of someone else", async () => {
+    const app = await createTestApp();
+    const { video } = await uploadVideo(app, "Retro", MIB, { email: OTHER_EMAIL });
+    expect((await remove(app, ADMIN_EMAIL, video.id)).status).toBe(204);
+    expect((await app.signedRequest(`/api/videos/${video.id}`)).status).toBe(404);
+  });
+
+  it("keeps the video when the storage service refuses to delete a file, so deleting it again finishes", async () => {
+    const app = await createTestApp();
+    const { video } = await uploadVideo(app, "Week 1", MIB);
+    app.store.failDeletionOf = `videos/${video.id}/original.mp4`;
+    const refused = await remove(app, VIEWER_EMAIL, video.id);
+    expect(refused.status).toBe(502);
+    expect((await body<ApiErrorBody>(refused)).error.code).toBe("storage_error");
+    expect((await app.signedRequest(`/api/videos/${video.id}`)).status).toBe(200);
+
+    app.store.failDeletionOf = null;
+    expect((await remove(app, VIEWER_EMAIL, video.id)).status).toBe(204);
+  });
+
+  it("leaves an upload in progress to the cancel of the upload", async () => {
+    const app = await createTestApp();
+    const upload = await startUpload(app, "Week 1", MIB);
+    expect((await remove(app, VIEWER_EMAIL, upload.videoId)).status).toBe(404);
+    expect((await app.signedRequest(`/api/uploads/${upload.videoId}/abort`, { method: "POST" })).status).toBe(204);
   });
 });
 
@@ -1041,6 +1110,7 @@ describe("attachments", () => {
     expect((await remove(OTHER_EMAIL)).status).toBe(403);
     expect((await remove(VIEWER_EMAIL)).status).toBe(204);
     expect(await attachmentsOf(app, video.id)).toEqual([]);
+    expect(app.store.objects.has(`attachments/${video.id}/${signed.attachmentId}`)).toBe(false);
     expect((await remove(VIEWER_EMAIL)).status).toBe(404);
   });
 

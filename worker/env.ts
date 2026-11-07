@@ -16,6 +16,8 @@ export interface D1PreparedStatement {
 
 export interface D1Database {
   prepare(query: string): D1PreparedStatement;
+  /** Runs the statements in order as one transaction: all of them change the database, or none. */
+  batch(statements: D1PreparedStatement[]): Promise<D1Result<unknown>[]>;
 }
 
 /** The static assets of the browser app, the part of the Workers API that albireo uses. */

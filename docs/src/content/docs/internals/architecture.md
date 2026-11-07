@@ -121,7 +121,7 @@ On the commit, the Worker checks that the file is in the bucket before albireo s
 - albireo stores each file as it is. It does not transcode the file or turn it into HLS (HTTP Live Streaming), a format that splits a video into many small files. Each video stays one object, and no transcoding service is needed.
 - Search runs in D1, with SQLite's full-text search FTS5 and its trigram tokenizer (migrations/0006_video_search.sql). A search library in the browser would need the titles and descriptions of every video. The trigram tokenizer finds words inside longer text, so it also works for languages that do not put spaces between words, such as Japanese.
 - Previews of attachments run in the browser. The Worker cannot run converters such as LibreOffice, and online viewers would send private files to another company.
-- albireo never deletes files from the bucket. Removing a picture or an attachment only unlinks it, so the access key needs no permission to delete.
+- Deleting a video, an attachment, or a picture deletes its file from the bucket too, so the bucket holds no file that the library no longer shows. The Worker deletes the files of a video before its rows in D1, so a deletion that stops halfway leaves the video in the library, and deleting it again finishes the work (worker/app.ts).
 - The Worker has no workers.dev address and no preview URLs (cloudflare.config.ts: `workersDev: false`, `previewUrls: false`). The only way in is the domain that Access protects.
 - Every setting is required, and albireo has no default values (config/settings.ts). A deployment behaves exactly as its settings say.
 

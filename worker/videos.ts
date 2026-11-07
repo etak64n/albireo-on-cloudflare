@@ -1,4 +1,5 @@
 // Reads and writes the videos table in D1, and the watch history that points at it.
+// Deleting a video also deletes the rows of the other tables that point at it.
 
 import type { D1Database } from "./env.ts";
 
@@ -372,6 +373,21 @@ export class VideoRepository {
       .bind(thumbnailKey, updatedAt, id)
       .run();
     return result.meta.changes === 1;
+  }
+
+  /**
+   * Deletes a video and every row that points at it: its places in the histories, its
+   * comments, its ratings, and its attachments. The trigger of the search index deletes
+   * its entry. One batch, so D1 deletes all of the rows or none of them.
+   */
+  async delete(id: string): Promise<boolean> {
+    const results = await this.#db.batch([
+      ...["watch_history", "comments", "ratings", "attachments"].map((table) =>
+        this.#db.prepare(`DELETE FROM ${table} WHERE video_id = ?`).bind(id),
+      ),
+      this.#db.prepare("DELETE FROM videos WHERE id = ?").bind(id),
+    ]);
+    return results.at(-1)?.meta.changes === 1;
   }
 
   /** Deletes the row of an upload that never completed. */

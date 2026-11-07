@@ -32,8 +32,6 @@ export const ATTACHMENT_NAME_MAX_LENGTH = 255;
 
 ## What albireo does not do
 
-- albireo does not delete videos.
 - albireo does not transcode videos or create HLS streams.
-- albireo does not delete files from the bucket. Removing a picture or an attachment only unlinks it.
 - albireo has no editing of comments, and it sends no notifications or emails.
 - albireo has no previews of Word and Excel files. They download only.

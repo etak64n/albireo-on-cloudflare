@@ -114,6 +114,27 @@ describe("S3ObjectStore requests", () => {
     await expect(new S3ObjectStore(storage, 600).headObject("thumbnails/abc.jpg")).resolves.toEqual({ size: 2048 });
   });
 
+  it("deletes an object with a signed DELETE", async () => {
+    const fetchMock = stubFetch(new Response(null, { status: 204 }));
+    await new S3ObjectStore(storage, 600).deleteObject("attachments/abc/def");
+    const request = fetchMock.mock.calls[0]?.[0];
+    expect(request?.method).toBe("DELETE");
+    expect(request?.url).toBe("https://s3.example.com/albireo-videos/attachments/abc/def");
+    expect(request?.headers.get("authorization")).toMatch(/^AWS4-HMAC-SHA256 /);
+  });
+
+  it("deletes a key that holds no object, which some services answer with 404", async () => {
+    stubFetch(new Response(null, { status: 404 }));
+    await expect(new S3ObjectStore(storage, 600).deleteObject("thumbnails/abc.jpg")).resolves.toBeUndefined();
+  });
+
+  it("reports a key that may not delete objects", async () => {
+    stubFetch(new Response("<Error><Code>AccessDenied</Code><Message>Access Denied</Message></Error>", { status: 403 }));
+    await expect(new S3ObjectStore(storage, 600).deleteObject("thumbnails/abc.jpg")).rejects.toThrow(
+      new StorageError("DeleteObject failed with HTTP 403 (AccessDenied: Access Denied)."),
+    );
+  });
+
   it("keeps its requests out of the cache, which would send a HEAD of a video as a GET", async () => {
     const fetchMock = stubFetch(new Response(null, { status: 200, headers: { "content-length": "2048" } }));
     await new S3ObjectStore(storage, 600).headObject("videos/abc/original.mp4");
