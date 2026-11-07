@@ -92,10 +92,7 @@ const en = {
     resolution: "Resolution",
     rating: "Rating",
     episode: (episode: number) => `Episode ${episode}`,
-    previous: "Previous",
-    next: "Next",
-    previousEpisode: (title: string) => `Previous: ${title}`,
-    nextEpisode: (title: string) => `Next: ${title}`,
+    episodeOf: (episode: number, count: number) => `Episode ${episode} of ${count}`,
     noSeries: "No series",
   },
   rating: {
@@ -264,10 +261,7 @@ const ja: Messages = {
     resolution: "解像度",
     rating: "評価",
     episode: (episode) => `第 ${episode} 回`,
-    previous: "前へ",
-    next: "次へ",
-    previousEpisode: (title) => `前の回：${title}`,
-    nextEpisode: (title) => `次の回：${title}`,
+    episodeOf: (episode, count) => `第 ${episode} 回（全 ${count} 回）`,
     noSeries: "シリーズなし",
   },
   rating: {

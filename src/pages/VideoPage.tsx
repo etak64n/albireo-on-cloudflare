@@ -1,6 +1,6 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Play } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import type { EpisodeLink, VideoDetail, VideoSeries } from "../../shared/api.ts";
+import type { Episode, VideoDetail, VideoSeries } from "../../shared/api.ts";
 import { ApiError, api } from "../api.ts";
 import { Attachments } from "../components/Attachments.tsx";
 import { Avatar } from "../components/Avatar.tsx";
@@ -8,12 +8,13 @@ import { Comments } from "../components/Comments.tsx";
 import { Breadcrumb, DetailList, Section } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { StarRating } from "../components/StarRating.tsx";
+import { Thumbnail } from "../components/Thumbnail.tsx";
 import { VideoEditForm } from "../components/VideoEditForm.tsx";
-import { Button } from "../components/ui/button.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 import { useT } from "../i18n.ts";
 import { formatDate, formatDuration } from "../lib/format.ts";
 import { usePageTitle } from "../lib/title.ts";
+import { cn } from "../lib/utils.ts";
 import { Link, navigate } from "../router.tsx";
 import { NotFoundPage } from "./NotFoundPage.tsx";
 
@@ -29,6 +30,38 @@ function isContinueState(state: unknown): state is ContinueState {
   return typeof state === "object" && state !== null && "autoplay" in state && state.autoplay === true;
 }
 
+/** The episodes of the series of a video, once they load, or why they did not. */
+interface SeriesEpisodes {
+  episodes: Episode[] | null;
+  error: string | null;
+}
+
+/**
+ * Loads the episodes of a series for the list beside the player. The page loads them once,
+ * though it shows the list twice, beside the player on wide pages and under the title on
+ * narrow ones. The episodes of another series never show while a new series loads.
+ */
+function useSeriesEpisodes(seriesId: string | null): SeriesEpisodes {
+  const [loaded, setLoaded] = useState<{ seriesId: string; episodes: Episode[] | null; error: string | null } | null>(null);
+  useEffect(() => {
+    if (seriesId === null) return;
+    let active = true;
+    api
+      .getSeries(seriesId)
+      .then(({ series }) => {
+        if (active) setLoaded({ seriesId, episodes: series.episodes, error: null });
+      })
+      .catch((err: unknown) => {
+        if (active) setLoaded({ seriesId, episodes: null, error: err instanceof Error ? err.message : String(err) });
+      });
+    return () => {
+      active = false;
+    };
+  }, [seriesId]);
+  if (loaded === null || loaded.seriesId !== seriesId) return { episodes: null, error: null };
+  return { episodes: loaded.episodes, error: loaded.error };
+}
+
 /**
  * The page of one video: the player, the title and the description, the attachments,
  * and the comments, and beside them on wide pages the details and the series. On
@@ -42,6 +75,7 @@ export function VideoPage({ id }: { id: string }) {
   const player = useRef<HTMLVideoElement>(null);
   const t = useT();
   usePageTitle(video?.title ?? null);
+  const episodes = useSeriesEpisodes(video?.series?.id ?? null);
 
   useEffect(() => {
     let active = true;
@@ -99,13 +133,13 @@ export function VideoPage({ id }: { id: string }) {
               <VideoEditForm video={video} onSaved={setVideo} />
             </div>
             <div className="@4xl:hidden">
-              <VideoAside video={video} onChange={setVideo} layout="row" />
+              <VideoAside video={video} episodes={episodes} onChange={setVideo} layout="row" />
             </div>
             <Attachments video={video} onChange={(attachments) => setVideo((current) => current && { ...current, attachments })} />
             <Comments videoId={video.id} durationSec={video.durationSec} onSeek={seek} />
           </div>
           <aside className="hidden @4xl:block">
-            <VideoAside video={video} onChange={setVideo} layout="column" />
+            <VideoAside video={video} episodes={episodes} onChange={setVideo} layout="column" />
           </aside>
         </div>
       )}
@@ -137,11 +171,20 @@ function PlayerPlaceholder() {
 }
 
 /**
- * The details of the video, and its series with the previous and the next episodes: in
- * the narrow column beside the video on wide pages, and in rows under the title on
- * narrow pages.
+ * The details of the video, and the episodes of its series: in the narrow column beside
+ * the video on wide pages, and in rows under the title on narrow pages.
  */
-function VideoAside({ video, onChange, layout }: { video: VideoDetail; onChange: (video: VideoDetail) => void; layout: "column" | "row" }) {
+function VideoAside({
+  video,
+  episodes,
+  onChange,
+  layout,
+}: {
+  video: VideoDetail;
+  episodes: SeriesEpisodes;
+  onChange: (video: VideoDetail) => void;
+  layout: "column" | "row";
+}) {
   const t = useT();
   const details = [
     {
@@ -168,14 +211,28 @@ function VideoAside({ video, onChange, layout }: { video: VideoDetail; onChange:
       <Section title={t.video.details}>
         <DetailList items={details} layout={layout} />
       </Section>
-      {video.series !== null && <SeriesNav series={video.series} />}
+      {video.series !== null && <SeriesNav series={video.series} videoId={video.id} episodes={episodes} />}
     </div>
   );
 }
 
-/** The series of the video: its name, the number of the episode, and the previous and the next episodes. */
-function SeriesNav({ series }: { series: VideoSeries }) {
+/**
+ * The series of the video: its name, where the video sits in it, and every episode in a
+ * list from the first, which marks the episode that plays.
+ */
+function SeriesNav({ series, videoId, episodes }: { series: VideoSeries; videoId: string; episodes: SeriesEpisodes }) {
   const t = useT();
+  const list = useRef<HTMLOListElement>(null);
+  const loaded = episodes.episodes;
+
+  // A long list scrolls by itself, not with the page, to show the episode that plays.
+  useEffect(() => {
+    const element = list.current;
+    const current = element?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (element === null || element === undefined || current === null || current === undefined) return;
+    element.scrollTop = current.offsetTop - (element.clientHeight - current.offsetHeight) / 2;
+  }, [loaded, videoId]);
+
   return (
     <Section title={t.common.series}>
       <nav className="grid gap-3" aria-label={t.common.series}>
@@ -183,41 +240,52 @@ function SeriesNav({ series }: { series: VideoSeries }) {
           <Link to={`/series/${series.id}`} className="w-fit text-sm font-bold break-words text-accent hover:underline">
             {series.title}
           </Link>
-          <span className="text-sm text-label">{t.video.episode(series.episode)}</span>
+          <span className="text-sm text-label">
+            {loaded === null ? t.video.episode(series.episode) : t.video.episodeOf(series.episode, loaded.length)}
+          </span>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <EpisodeButton episode={series.previous} direction="previous" />
-          <EpisodeButton episode={series.next} direction="next" />
-        </div>
+        {episodes.error !== null ? (
+          <p className="error-box">{episodes.error}</p>
+        ) : loaded === null ? (
+          <div className="grid gap-2" role="status" aria-label={t.common.loading}>
+            <Skeleton className="h-14" />
+            <Skeleton className="h-14" />
+            <Skeleton className="h-14" />
+          </div>
+        ) : (
+          <ol ref={list} className="relative -mx-2 grid max-h-[26rem] content-start gap-0.5 overflow-y-auto">
+            {loaded.map((episode) => (
+              <EpisodeItem key={episode.id} episode={episode} current={episode.id === videoId} />
+            ))}
+          </ol>
+        )}
       </nav>
     </Section>
   );
 }
 
-function EpisodeButton({ episode, direction }: { episode: EpisodeLink | null; direction: "previous" | "next" }) {
-  const t = useT();
-  const label = direction === "previous" ? t.video.previous : t.video.next;
-  const content =
-    direction === "previous" ? (
-      <>
-        <ChevronLeft aria-hidden="true" />
-        {label}
-      </>
-    ) : (
-      <>
-        {label}
-        <ChevronRight aria-hidden="true" />
-      </>
-    );
-  if (episode === null) return <Button disabled>{content}</Button>;
+/**
+ * An episode in the list of the series: its number, picture, title, and length. The
+ * episode that plays takes the accent and a play mark in place of its number, as the page
+ * that is open does in the sidebar.
+ */
+function EpisodeItem({ episode, current }: { episode: Episode; current: boolean }) {
   return (
-    <Button asChild>
-      <Link to={`/videos/${episode.id}`}>
-        <span className="sr-only">{direction === "previous" ? t.video.previousEpisode(episode.title) : t.video.nextEpisode(episode.title)}</span>
-        <span aria-hidden="true" className="flex items-center gap-1">
-          {content}
+    <li>
+      <Link
+        to={`/videos/${episode.id}`}
+        current={current}
+        className="flex items-center gap-2 rounded-md p-2 transition-colors duration-150 hover:bg-surface-hover"
+      >
+        <span className="numeric grid w-5 shrink-0 place-items-center text-xs text-label">
+          {current ? <Play className="size-3 fill-current text-accent" aria-hidden="true" /> : episode.episode}
+        </span>
+        <Thumbnail url={episode.thumbnailUrl} className="w-24 shrink-0 rounded-sm" />
+        <span className="grid min-w-0 gap-0.5">
+          <span className={cn("line-clamp-2 text-sm break-words", current ? "font-semibold text-accent" : "text-strong")}>{episode.title}</span>
+          {episode.durationSec !== null && <span className="numeric text-xs text-label">{formatDuration(episode.durationSec)}</span>}
         </span>
       </Link>
-    </Button>
+    </li>
   );
 }

@@ -6,7 +6,7 @@ description: "The video page and its player."
 The video page has five parts, from the top (src/pages/VideoPage.tsx).
 
 1. The player
-2. The series bar, with the previous and the next episodes, when the video is in a series
+2. The episodes of the series, in a list that marks the episode that plays, when the video is in a series
 3. The title, the uploader, and the rating
 4. The length, the resolution, the date, and the description
 5. The attachments and the comments
