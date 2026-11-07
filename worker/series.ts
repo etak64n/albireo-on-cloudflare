@@ -96,6 +96,12 @@ export class SeriesRepository {
   async touch(id: string, now: string): Promise<void> {
     await this.#db.prepare("UPDATE series SET updated_at = ? WHERE id = ?").bind(now, id).run();
   }
+
+  /** Deletes a series that no video belongs to any more (VideoRepository.leaveSeries). */
+  async delete(id: string): Promise<boolean> {
+    const result = await this.#db.prepare("DELETE FROM series WHERE id = ?").bind(id).run();
+    return result.meta.changes === 1;
+  }
 }
 
 function toRecord(row: SeriesRow): SeriesRecord {

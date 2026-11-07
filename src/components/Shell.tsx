@@ -212,15 +212,7 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
         </NavLink>
       </nav>
       <div className="grid gap-1">
-        <div className="flex h-7 items-center justify-between">
-          <h2 className="text-xs text-subdued">{t.common.series}</h2>
-          {!creating && (
-            <Button variant="ghost" size="icon" className="-mr-1.5 text-subdued" aria-label={t.shell.newSeries} onClick={() => setCreating(true)}>
-              <Plus />
-            </Button>
-          )}
-        </div>
-        {creating && <NewSeriesForm onDone={() => setCreating(false)} />}
+        <h2 className="flex h-7 items-center text-xs text-subdued">{t.common.series}</h2>
         {error !== "" && <p className="text-xs font-semibold text-critical">{error}</p>}
         {series !== null && series.length > 0 && (
           <nav className="-mx-1 grid gap-0.5" aria-label={t.common.series}>
@@ -230,6 +222,19 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
               </NavLink>
             ))}
           </nav>
+        )}
+        {/* The row after the series opens the form for a new series, which takes its place. */}
+        {creating ? (
+          <NewSeriesForm onDone={() => setCreating(false)} />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="-mx-1 flex h-[30px] items-center gap-3 rounded-sm px-2 text-sm text-subdued transition-colors duration-150 hover:bg-surface-hover hover:text-strong pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0"
+          >
+            <Plus aria-hidden="true" />
+            <span className="truncate">{t.shell.newSeries}</span>
+          </button>
         )}
       </div>
     </div>

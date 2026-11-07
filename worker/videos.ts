@@ -229,6 +229,17 @@ export class VideoRepository {
     return results.map(toRecord);
   }
 
+  /**
+   * Takes every video of a series out of it, the ones that still upload included, so the
+   * series can go. The videos stay in the library.
+   */
+  async leaveSeries(seriesId: string, now: string): Promise<void> {
+    await this.#db
+      .prepare("UPDATE videos SET series_id = NULL, series_position = NULL, updated_at = ? WHERE series_id = ?")
+      .bind(now, seriesId)
+      .run();
+  }
+
   /** Moves a video to the end of a series, or out of its series when seriesId is null. */
   async setSeries(id: string, seriesId: string | null, now: string): Promise<boolean> {
     const result = await this.#db

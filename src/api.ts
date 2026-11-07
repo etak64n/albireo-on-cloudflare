@@ -145,6 +145,8 @@ export const api = {
   createSeries: (series: CreateSeriesRequest) => request<SeriesResponse>("/api/series", "POST", series),
   getSeries: (id: string) => request<SeriesResponse>(`/api/series/${id}`, "GET"),
   updateSeries: (id: string, changes: UpdateSeriesRequest) => request<SeriesResponse>(`/api/series/${id}`, "PATCH", changes),
+  /** Deletes a series. Its videos stay in the library, out of any series. */
+  deleteSeries: (id: string) => request<void>(`/api/series/${id}`, "DELETE"),
   moveEpisode: (seriesId: string, videoId: string, direction: MoveEpisodeRequest["direction"]) =>
     request<SeriesResponse>(`/api/series/${seriesId}/episodes/${videoId}/move`, "POST", { direction }),
   removeEpisode: (seriesId: string, videoId: string) =>

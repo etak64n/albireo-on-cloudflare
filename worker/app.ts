@@ -654,6 +654,20 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
     });
   });
 
+  // Deletes a series. Its videos stay in the library, out of any series. The creator of
+  // the series and admins can.
+  app.delete("/api/series/:id", async (c) => {
+    const repository = new SeriesRepository(c.env.DB);
+    const series = await findSeries(repository, pathId(c.req.param("id"), "series"));
+    if (!canEditSeries(c.get("viewer"), series)) {
+      throw forbidden("Only the creator of the series or an admin can delete it.");
+    }
+    await new VideoRepository(c.env.DB).leaveSeries(series.id, now());
+    await repository.delete(series.id);
+    log("INFO", "Series deleted", c.get("requestId"), { seriesId: series.id });
+    return c.body(null, 204);
+  });
+
   // Moves an episode one place earlier or later.
   app.post("/api/series/:id/episodes/:videoId/move", async (c) => {
     const seriesRepository = new SeriesRepository(c.env.DB);

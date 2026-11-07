@@ -114,6 +114,7 @@ const ROUTES = [
   route("POST", "/api/series", ({ body }) => createSeries(body)),
   route("GET", "/api/series/:id", ({ ids: [id = ""] }) => ({ series: seriesDetail(findSeries(id)) }) satisfies SeriesResponse),
   route("PATCH", "/api/series/:id", ({ ids: [id = ""], body }) => updateSeries(id, body)),
+  route("DELETE", "/api/series/:id", ({ ids: [id = ""] }) => deleteSeries(id)),
   route("POST", "/api/series/:id/episodes/:id/move", ({ ids: [seriesId = "", videoId = ""], body }) => moveEpisode(seriesId, videoId, body)),
   route("DELETE", "/api/series/:id/episodes/:id", ({ ids: [seriesId = "", videoId = ""] }) => removeEpisode(seriesId, videoId)),
 ];
@@ -557,6 +558,21 @@ function moveEpisode(seriesId: string, videoId: string, body: Fields): SeriesRes
   [episode.seriesPosition, neighbor.seriesPosition] = [neighbor.seriesPosition, episode.seriesPosition];
   series.updatedAt = now();
   return { series: seriesDetail(series) };
+}
+
+/** Deletes a series, as the Worker does: its videos stay in the library, out of any series. */
+function deleteSeries(id: string): undefined {
+  const series = findSeries(id);
+  if (!canEditSeries(series)) throw new ApiError(403, "forbidden", "Only the creator of the series or an admin can delete it.");
+  const time = now();
+  for (const video of library.videos) {
+    if (video.seriesId !== series.id) continue;
+    video.seriesId = null;
+    video.seriesPosition = null;
+    video.updatedAt = time;
+  }
+  library.series = library.series.filter((item) => item.id !== series.id);
+  return undefined;
 }
 
 function removeEpisode(seriesId: string, videoId: string): SeriesResponse {

@@ -14,9 +14,9 @@ import { Button } from "./ui/button.tsx";
 /**
  * Opens the file picker, where several videos can be chosen, and puts them in the queue.
  * In the top bar, it narrows to its icon on small screens. Prominent, it is the primary
- * button with its label at every size.
+ * button with its label at every size. With a series, the videos join that series.
  */
-export function UploadButton({ prominent = false }: { prominent?: boolean }) {
+export function UploadButton({ prominent = false, seriesId }: { prominent?: boolean; seriesId?: string }) {
   const uploader = useUploads();
   const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -25,7 +25,7 @@ export function UploadButton({ prominent = false }: { prominent?: boolean }) {
     // Clearing the input empties its list of files, so the files are taken first.
     const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    uploader.add(files);
+    uploader.add(files, seriesId);
   }
 
   return (

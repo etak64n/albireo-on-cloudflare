@@ -136,6 +136,9 @@ const en = {
     moveEarlier: "Move earlier",
     moveLater: "Move later",
     removeFromSeries: "Remove from the series",
+    noEpisodesYet: "No videos in this series yet",
+    deleteQuestion: "Delete this series?",
+    deleteKeepsVideos: "Its videos stay in the library, out of any series.",
   },
   account: {
     details: "Details",
@@ -313,6 +316,9 @@ const ja: Messages = {
     moveEarlier: "前へ移動",
     moveLater: "後ろへ移動",
     removeFromSeries: "シリーズから外す",
+    noEpisodesYet: "このシリーズにはまだ動画がありません",
+    deleteQuestion: "このシリーズを削除しますか？",
+    deleteKeepsVideos: "動画はシリーズから外れて、ライブラリに残ります。",
   },
   account: {
     details: "基本情報",

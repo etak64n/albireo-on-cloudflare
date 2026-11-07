@@ -680,6 +680,26 @@ describe("series", () => {
     expect((await rename(OTHER_EMAIL)).status).toBe(403);
     expect((await rename(ADMIN_EMAIL)).status).toBe(200);
   });
+
+  it("deletes a series for its creator, and keeps its videos in the library out of any series", async () => {
+    const app = await createTestApp();
+    const { series } = await createSeries(app, "Weekly syncs");
+    const { video } = await uploadVideo(app, "Week 1", MIB, { seriesId: series.id });
+    const remove = (email: string) => app.requestAs(email, `/api/series/${series.id}`, { method: "DELETE" });
+
+    expect((await remove(OTHER_EMAIL)).status).toBe(403);
+    expect((await remove(VIEWER_EMAIL)).status).toBe(204);
+    expect((await app.signedRequest(`/api/series/${series.id}`)).status).toBe(404);
+    expect((await app.signedRequest(`/api/videos/${video.id}`)).status).toBe(200);
+    const row = await app.env.DB.prepare("SELECT series_id, series_position FROM videos WHERE id = ?").bind(video.id).first();
+    expect(row).toEqual({ series_id: null, series_position: null });
+  });
+
+  it("lets an admin delete the series of someone else", async () => {
+    const app = await createTestApp();
+    const { series } = await createSeries(app, "Retros", OTHER_EMAIL);
+    expect((await app.requestAs(ADMIN_EMAIL, `/api/series/${series.id}`, { method: "DELETE" })).status).toBe(204);
+  });
 });
 
 describe("history", () => {

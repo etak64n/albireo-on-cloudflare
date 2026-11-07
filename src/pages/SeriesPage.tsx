@@ -3,10 +3,13 @@ import { useCallback, useEffect, useState, type MouseEvent } from "react";
 import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH, type Episode, type SeriesDetail } from "../../shared/api.ts";
 import { ApiError, api } from "../api.ts";
 import { Avatar } from "../components/Avatar.tsx";
+import { ConfirmDialog } from "../components/ConfirmDialog.tsx";
+import { EmptyLibrary } from "../components/EmptyLibrary.tsx";
 import { Breadcrumb, Section } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { Thumbnail } from "../components/Thumbnail.tsx";
 import { Button } from "../components/ui/button.tsx";
+import { UploadButton } from "../components/VideoUpload.tsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../components/ui/dropdown-menu.tsx";
 import { Input, Label, Textarea } from "../components/ui/field.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
@@ -19,13 +22,18 @@ import { useSession } from "../session.tsx";
 import { useUploads } from "../uploads.tsx";
 import { NotFoundPage } from "./NotFoundPage.tsx";
 
-/** The page of a series: its cover, title, and creator, its description, and the table of its episodes. */
+/**
+ * The page of a series: its cover, title, and creator, its description, and the table of its
+ * episodes, or that it has none yet. Videos uploaded from the page join the series. Its creator
+ * and admins edit and delete it; deleting it keeps its videos in the library.
+ */
 export function SeriesPage({ id }: { id: string }) {
   const { refresh } = useLibrary();
   const [series, setSeries] = useState<SeriesDetail | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [actionError, setActionError] = useState("");
   const [editing, setEditing] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { completed } = useUploads();
   const t = useT();
   usePageTitle(series?.title ?? null);
@@ -85,11 +93,16 @@ export function SeriesPage({ id }: { id: string }) {
                   <div className="grid min-w-0 flex-1 gap-1">
                     <div className="flex items-start justify-between gap-3">
                       <h1 className="min-w-0 text-display font-bold break-words text-strong">{series.title}</h1>
-                      {series.canEdit && (
-                        <Button className="mt-1" onClick={() => setEditing(true)}>
-                          {t.common.edit}
-                        </Button>
-                      )}
+                      <div className="mt-1 flex shrink-0 gap-2">
+                        {/* A series without videos shows its own upload button below. */}
+                        {series.episodes.length > 0 && <UploadButton seriesId={series.id} />}
+                        {series.canEdit && (
+                          <>
+                            <Button onClick={() => setEditing(true)}>{t.common.edit}</Button>
+                            <Button onClick={() => setDeleting(true)}>{t.common.delete}</Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                     <Link to={`/users/${series.owner.id}`} className="flex w-fit items-center gap-2 text-base text-label hover:underline">
                       <Avatar url={series.owner.avatarUrl} size="tiny" />
@@ -102,11 +115,28 @@ export function SeriesPage({ id }: { id: string }) {
             )}
           </div>
           {actionError && <p className="error-box">{actionError}</p>}
-          <EpisodeTable
-            series={series}
-            onMove={(episode, direction) => void change(api.moveEpisode(series.id, episode.id, direction))}
-            onRemove={(episode) => void change(api.removeEpisode(series.id, episode.id))}
-          />
+          {series.episodes.length === 0 ? (
+            <EmptyLibrary seriesId={series.id} />
+          ) : (
+            <EpisodeTable
+              series={series}
+              onMove={(episode, direction) => void change(api.moveEpisode(series.id, episode.id, direction))}
+              onRemove={(episode) => void change(api.removeEpisode(series.id, episode.id))}
+            />
+          )}
+          <ConfirmDialog
+            open={deleting}
+            title={t.series.deleteQuestion}
+            confirmLabel={t.common.delete}
+            onClose={() => setDeleting(false)}
+            onConfirm={async () => {
+              await api.deleteSeries(series.id);
+              await refresh();
+              navigate("/videos");
+            }}
+          >
+            <p className="text-sm">{t.series.deleteKeepsVideos}</p>
+          </ConfirmDialog>
         </>
       )}
     </Shell>
