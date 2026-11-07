@@ -62,6 +62,12 @@ jobs:
       - name: Make the sample media
         run: node scripts/demo-media.ts demo-dist "$RUNNER_TEMP/demo-tools"
 
+      # Opens the demo with the Content-Security-Policy that a deployment sends: a video page,
+      # every kind of attachment preview, a search, and the choice of a video and a picture.
+      # The demo does not go out when the browser blocks anything (scripts/demo-csp.ts).
+      - name: Check the Content-Security-Policy
+        run: node scripts/demo-csp.ts demo-dist "$RUNNER_TEMP/demo-tools" "/${{ github.event.repository.name }}/"
+
       # The poster and two frames of each video, and the pictures of the people, kept with the
       # run apart from the site, to look at them without playing the videos.
       - name: Keep frames of the sample videos

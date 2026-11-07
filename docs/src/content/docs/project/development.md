@@ -81,6 +81,10 @@ The tests apply the real migrations to node:sqlite, the search index included, b
 CI runs on pushes to main, on pull requests, and on each release (.github/workflows/ci.yml).
 It copies the example settings, then runs the type checks, the tests, and `cf build` on Node.js 24.
 
+The Content-Security-Policy that a deployment sends with its pages (worker/security-headers.ts) does not apply under `cf dev`, so the Pages workflow checks it on each push to main (.github/workflows/pages.yml).
+It serves the demo with the same policy and opens it in Chromium: a video page, the preview of every kind of attachment, a search, and the choice of a video and a picture (scripts/demo-csp.ts).
+When the browser blocks anything, the workflow fails and names what was blocked, and the demo does not go out.
+
 ## Scripts
 
 package.json defines these scripts.
