@@ -86,7 +86,7 @@ function Feature({ video }: { video: VideoSummary }) {
   const byline = [video.uploader?.displayName, formatDate(video.createdAt)].filter((part) => part !== undefined && part !== "").join(" · ");
   return (
     <Link to={`/videos/${video.id}`} className={`${FEATURE_CLASS} transition-colors duration-150 hover:bg-surface-hover`}>
-      <Thumbnail url={video.thumbnailUrl} durationSec={video.durationSec} className="rounded-lg" />
+      <Thumbnail url={video.thumbnailUrl} durationSec={video.durationSec} />
       <div className="grid content-center justify-items-start gap-2">
         <h2 className="line-clamp-3 text-display font-bold break-words text-heading">{video.title}</h2>
         <p className="numeric text-base text-label">{byline}</p>

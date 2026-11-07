@@ -81,7 +81,7 @@ export function SeriesPage({ id }: { id: string }) {
             ) : (
               <header className="grid gap-4">
                 <div className="flex items-start gap-4">
-                  <Thumbnail url={cover} className="w-[100px] shrink-0 rounded-sm" />
+                  <Thumbnail url={cover} className="w-[100px] shrink-0" />
                   <div className="grid min-w-0 flex-1 gap-1">
                     <div className="flex items-start justify-between gap-3">
                       <h1 className="min-w-0 text-display font-bold break-words text-strong">{series.title}</h1>
@@ -195,7 +195,7 @@ function EpisodeTable({
               <td className={`${CELL} numeric font-semibold text-strong`}>{episode.episode}</td>
               <td className={CELL}>
                 <Link to={`/videos/${episode.id}`} className="flex min-w-0 items-center gap-3">
-                  <Thumbnail url={episode.thumbnailUrl} className="w-20 shrink-0 rounded-xs" />
+                  <Thumbnail url={episode.thumbnailUrl} className="w-20 shrink-0" />
                   <span className="line-clamp-2 font-semibold break-words text-strong">{episode.title}</span>
                 </Link>
               </td>

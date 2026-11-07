@@ -3,12 +3,12 @@ import { formatDuration } from "../lib/format.ts";
 import { cn } from "../lib/utils.ts";
 
 /**
- * A 16:9 picture of a video, with its length over the lower right corner. Without a
- * thumbnail, a play mark stands in for it.
+ * A 16:9 picture of a video, with square corners as the player has, and its length over
+ * the lower right corner. Without a thumbnail, a play mark stands in for it.
  */
 export function Thumbnail({ url, durationSec = null, className }: { url: string | null; durationSec?: number | null; className?: string }) {
   return (
-    <div className={cn("relative aspect-video overflow-hidden rounded-md bg-surface-subdued", className)}>
+    <div className={cn("relative aspect-video overflow-hidden bg-surface-subdued", className)}>
       {url !== null ? (
         <img src={url} alt="" loading="lazy" className="size-full object-cover" />
       ) : (

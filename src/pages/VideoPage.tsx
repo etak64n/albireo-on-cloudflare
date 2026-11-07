@@ -280,7 +280,7 @@ function EpisodeItem({ episode, current }: { episode: Episode; current: boolean 
         <span className="numeric grid w-5 shrink-0 place-items-center text-xs text-label">
           {current ? <Play className="size-3 fill-current text-accent" aria-hidden="true" /> : episode.episode}
         </span>
-        <Thumbnail url={episode.thumbnailUrl} className="w-24 shrink-0 rounded-sm" />
+        <Thumbnail url={episode.thumbnailUrl} className="w-24 shrink-0" />
         <span className="grid min-w-0 gap-0.5">
           <span className={cn("line-clamp-2 text-sm break-words", current ? "font-semibold text-accent" : "text-strong")}>{episode.title}</span>
           {episode.durationSec !== null && <span className="numeric text-xs text-label">{formatDuration(episode.durationSec)}</span>}
