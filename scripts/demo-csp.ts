@@ -12,6 +12,9 @@ import { createServer, type Server } from "node:http";
 import { createRequire } from "node:module";
 import type { AddressInfo } from "node:net";
 import { extname, join, resolve, sep } from "node:path";
+import { createLibrary, type DemoVideo } from "../src/demo/data.ts";
+import { ATTACHMENT_FILES } from "../src/demo/media.ts";
+import { previewKindOf } from "../src/lib/attachments.ts";
 import { contentSecurityPolicy } from "../worker/security-headers.ts";
 
 // The parts of Playwright that this script uses. Playwright is no dependency of albireo,
@@ -22,7 +25,7 @@ interface Locator {
   first(): Locator;
   nth(index: number): Locator;
   setInputFiles(path: string): Promise<void>;
-  waitFor(options?: { state: "attached" | "visible" }): Promise<void>;
+  waitFor(options?: { state: "attached" | "visible" | "hidden" }): Promise<void>;
 }
 
 interface Page {
@@ -47,11 +50,12 @@ interface Playwright {
   chromium: { launch(): Promise<Browser> };
 }
 
-// The series and the episode whose attachments have every kind that albireo previews:
-// PDF, PowerPoint, a picture, CSV, JSON, Python, and Markdown (src/demo/lessons.ts).
-const SERIES = "SQL in 20 lessons";
-const EPISODE = /SQL lesson 8:/;
 const QUERY = "design";
+
+/** The attachments of a video that albireo previews, by the names of their files. */
+function previewable(video: DemoVideo): string[] {
+  return video.attachments.map(({ file }) => ATTACHMENT_FILES[file].fileName).filter((name) => previewKindOf(name) !== null);
+}
 
 // Every document of the page reports what the policy blocks to the console, where this
 // script reads it. The listener comes before any script of the document runs.
@@ -157,23 +161,32 @@ async function main(site: string, toolsFolder: string, base: string): Promise<vo
       await page.goto(home);
       await page.getByRole("heading", { name: "Home", level: 1 }).waitFor();
     });
-    await run(`The series ${SERIES}`, async () => {
-      await page.getByRole("link", { name: SERIES, exact: true }).first().click();
-      await page.getByRole("heading", { name: SERIES, level: 1 }).waitFor();
+    await run("All videos", async () => {
+      await page.goto(`${home}videos`);
+      await page.getByRole("heading", { level: 1, name: /./ }).waitFor();
     });
-    await run("The episode with every kind of attachment", async () => {
-      await page.getByRole("link", { name: EPISODE }).first().click();
+    // The video of the demo with the most attachments that albireo previews, so that each
+    // kind of preview opens: PDF, slides, pictures, CSV, Markdown, JSON, and code.
+    const video = createLibrary(new Date()).videos.reduce((most, next) => (previewable(next).length > previewable(most).length ? next : most));
+    const files = previewable(video);
+    await run(`The video "${video.title}"`, async () => {
+      await page.goto(`${home}videos/${video.id}`);
+      await page.getByRole("heading", { name: video.title, level: 1 }).waitFor();
       await page.locator("video").first().waitFor({ state: "attached" });
     });
+    console.log(`Attachments to preview: ${files.join(", ")}`);
     const previews = page.getByRole("button", { name: "Preview", exact: true });
     const count = await previews.count();
-    if (count === 0) throw new Error("The episode shows no attachment to preview.");
+    if (count !== files.length) {
+      throw new Error(`The video shows ${count} attachment(s) to preview, not the ${files.length} of the demo data: ${files.join(", ")}.`);
+    }
     for (let index = 0; index < count; index += 1) {
       await run(`The preview of attachment ${index + 1} of ${count}`, async () => {
         await previews.nth(index).click();
         await page.getByRole("dialog").waitFor();
       });
       await page.keyboard.press("Escape");
+      await page.getByRole("dialog").waitFor({ state: "hidden" });
     }
     await run(`A search for "${QUERY}"`, async () => {
       await page.getByRole("textbox", { name: "Search videos" }).click();
@@ -186,6 +199,14 @@ async function main(site: string, toolsFolder: string, base: string): Promise<vo
     await run("Choosing a video to upload", async () => {
       await page.locator('input[type="file"][accept="video/*"]').first().setInputFiles(firstFile(join(site, "media", "videos"), ".mp4"));
       await page.waitForTimeout(3000);
+    });
+    await run("History", async () => {
+      await page.goto(`${home}history`);
+      await page.getByRole("heading", { level: 1, name: /./ }).waitFor();
+    });
+    await run("Account", async () => {
+      await page.goto(`${home}settings/account`);
+      await page.getByRole("heading", { level: 1, name: /./ }).waitFor();
     });
     // Cropping shows the chosen picture from a blob: URL.
     await run("Choosing a picture for the channel", async () => {
