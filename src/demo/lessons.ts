@@ -1,7 +1,7 @@
 // The 20 lessons of the series SQL in 20 lessons, which shows a long series in the demo.
 // data.ts makes a video of each, and scripts/demo-media.ts draws its two slides: the
 // title, then the query of the lesson.
-import type { VideoFile } from "./media.ts";
+import type { AttachmentFile, VideoFile } from "./media.ts";
 
 export interface Lesson {
   /** The name of the files of the video. */
@@ -12,6 +12,7 @@ export interface Lesson {
   lead: string;
   /** The query on the second slide. */
   code: string;
+  attachments?: readonly AttachmentFile[];
 }
 
 export const LESSONS_SERIES_ID = "y2cjtpne9tejnzes";
@@ -24,7 +25,7 @@ export const LESSONS: readonly Lesson[] = [
   { file: "sql-05", id: "qe12wnfan1uht7at", title: "COUNT and SUM", lead: "Many rows become one number.", code: "SELECT COUNT(*), SUM(duration_sec)\nFROM videos;" },
   { file: "sql-06", id: "uc05qda8bm7i8gy2", title: "GROUP BY", lead: "One row for each group.", code: "SELECT uploader_id, COUNT(*)\nFROM videos\nGROUP BY uploader_id;" },
   { file: "sql-07", id: "rtoet0fzp8njwv5k", title: "HAVING", lead: "Keep only the groups that match.", code: "SELECT uploader_id, COUNT(*) AS uploads\nFROM videos\nGROUP BY uploader_id\nHAVING COUNT(*) >= 3;" },
-  { file: "sql-08", id: "q7nuabyktp71h0yz", title: "INNER JOIN", lead: "Rows that match in both tables.", code: "SELECT v.title, p.name\nFROM videos AS v\nJOIN people AS p ON p.id = v.uploader_id;" },
+  { file: "sql-08", id: "q7nuabyktp71h0yz", title: "INNER JOIN", lead: "Rows that match in both tables.", code: "SELECT v.title, p.name\nFROM videos AS v\nJOIN people AS p ON p.id = v.uploader_id;", attachments: ["lessonQuery"] },
   { file: "sql-09", id: "6zoxsqwkevwv14pg", title: "LEFT JOIN", lead: "Keep the rows without a match too.", code: "SELECT p.name, v.title\nFROM people AS p\nLEFT JOIN videos AS v ON v.uploader_id = p.id;" },
   { file: "sql-10", id: "rizcyccusalon4qt", title: "Subqueries", lead: "A query inside a query.", code: "SELECT title\nFROM videos\nWHERE duration_sec >\n  (SELECT AVG(duration_sec) FROM videos);" },
   { file: "sql-11", id: "0que3rjopg1mde33", title: "WITH", lead: "Name a step, then build on it.", code: "WITH long_videos AS (\n  SELECT * FROM videos WHERE duration_sec > 1800\n)\nSELECT COUNT(*) FROM long_videos;" },

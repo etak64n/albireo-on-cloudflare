@@ -201,12 +201,12 @@ export function createLibrary(now: Date): DemoLibrary {
       video("tipCharts", {
         title: "Design tip 3: label the data, not the axis",
         description:
-          "Write the value on the bar, drop the gridlines, and color only the bar that matters. The slides, the chart, its data, a checklist, and the colors are attached.",
+          "Write the value on the bar, drop the gridlines, and color only the bar that matters. The slides, the chart, its data, a checklist, the colors, and the script that draws the chart are attached.",
         createdAt: ago(6, 3),
         uploaderId: PEOPLE.mina,
         media: "tip-charts",
         series: ["tips", 3],
-        attachments: ["chartSlides", "chartPptx", "chartImage", "chartData", "chartChecklist", "chartColors"],
+        attachments: ["chartSlides", "chartPptx", "chartImage", "chartData", "chartChecklist", "chartColors", "chartScript"],
       }),
       video("checklist", {
         title: "Product update: the launch checklist",
@@ -266,11 +266,11 @@ export function createLibrary(now: Date): DemoLibrary {
       video("uploads", {
         title: "How uploads resume, in one diagram",
         description:
-          "Why a large upload survives a flaky connection: the browser sends parts four at a time, retries a part rather than the file, and asks for a fresh URL on every attempt. The notes are attached.",
+          "Why a large upload survives a flaky connection: the browser sends parts four at a time, retries a part rather than the file, and asks for a fresh URL on every attempt. The notes and a sketch of the code are attached.",
         createdAt: ago(10, 2),
         uploaderId: PEOPLE.daniel,
         media: "uploads-diagram",
-        attachments: ["uploadSteps"],
+        attachments: ["uploadSteps", "uploadCode"],
       }),
       video("lobby", {
         title: "Lobby screen: evening loop",
@@ -299,7 +299,7 @@ export function createLibrary(now: Date): DemoLibrary {
           seriesId: LESSONS_SERIES_ID,
           seriesPosition: index + 1,
           media: lesson.file,
-          attachments: [],
+          attachments: (lesson.attachments ?? []).map((file) => ({ id: id("f"), file, createdAt: ago(90 - index * 2, 4) })),
         }),
       ),
     ],

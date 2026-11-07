@@ -4,7 +4,7 @@
 // one calm design: white pages, the navy and the gold of albireo as accents, Noto Sans,
 // and wide margins. Nothing shows a person.
 
-import type { Lesson } from "../src/demo/lessons.ts";
+import { LESSONS, type Lesson } from "../src/demo/lessons.ts";
 import type { PictureFile } from "../src/demo/media.ts";
 
 const NAVY = "#01153d";
@@ -702,7 +702,65 @@ export const PRICING_FAQ: Answers = {
   ],
 };
 
+// The lesson whose query goes with it as a file of SQL.
+const JOIN_LESSON = LESSONS.find((lesson) => lesson.file === "sql-08");
+if (JOIN_LESSON === undefined) throw new Error("SQL in 20 lessons has no lesson 8.");
+
 export const NOTES = {
+  // The script that draws the chart of Design tip 3, from the same data and colors.
+  chartScript: `# Draws the bar chart of Design tip 3: the value on each bar, no gridlines and no axis,
+# and gold for the bar that matters.
+import matplotlib.pyplot as plt
+
+teams = [${TEAM_UPLOADS.map(({ label }) => `"${label}"`).join(", ")}]
+videos = [${TEAM_UPLOADS.map(({ value }) => value).join(", ")}]
+highlight = "Engineering"
+
+colors = ["${GOLD}" if team == highlight else "${NAVY}" for team in teams]
+fig, ax = plt.subplots(figsize=(10.56, 3.8))
+bars = ax.bar(teams, videos, color=colors, width=0.6)
+ax.bar_label(bars, padding=6, fontsize=14, fontweight="bold", color="${NAVY}")
+ax.set_title("Videos uploaded by each team", loc="left", fontsize=18, fontweight="bold")
+ax.spines[["top", "right", "left"]].set_visible(False)
+ax.tick_params(axis="x", colors="${SLATE}", length=0)
+ax.set_yticks([])
+fig.savefig("bar-chart.png", dpi=200, bbox_inches="tight")
+`,
+  // A sketch of the code of the diagram of resumable uploads.
+  uploadCode: `// How the browser sends the parts of an upload: four at a time, with a fresh signed URL
+// for each attempt, and up to three attempts for each part. The other parts keep going.
+const PARALLEL = 4;
+const ATTEMPTS = 3;
+
+interface Part {
+  number: number;
+  body: Blob;
+}
+
+type SignedUrlOf = (part: number) => Promise<string>;
+
+export async function sendParts(parts: Part[], signedUrlOf: SignedUrlOf): Promise<Map<number, string>> {
+  const etags = new Map<number, string>();
+  const queue = [...parts];
+  const sender = async () => {
+    for (let part = queue.shift(); part !== undefined; part = queue.shift()) {
+      etags.set(part.number, await sendPart(part, signedUrlOf));
+    }
+  };
+  await Promise.all(Array.from({ length: PARALLEL }, sender));
+  return etags;
+}
+
+async function sendPart(part: Part, signedUrlOf: SignedUrlOf): Promise<string> {
+  for (let attempt = 1; ; attempt += 1) {
+    // A fresh URL for each attempt, so that a retry never uses one that expired.
+    const response = await fetch(await signedUrlOf(part.number), { method: "PUT", body: part.body });
+    if (response.ok) return response.headers.get("ETag") ?? "";
+    if (attempt === ATTEMPTS) throw new Error(\`Part \${part.number} failed \${ATTEMPTS} times.\`);
+  }
+}
+`,
+  lessonQuery: `-- SQL lesson 8: ${JOIN_LESSON.title}\n-- ${JOIN_LESSON.lead}\n${JOIN_LESSON.code}\n`,
   // The files that go with the chart of Design tip 3: its data, a checklist, and its colors.
   chartData: `team,videos\n${TEAM_UPLOADS.map(({ label, value }) => `${label},${value}`).join("\n")}\n`,
   chartChecklist: `# Before you share a chart
