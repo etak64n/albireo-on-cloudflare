@@ -3,7 +3,11 @@ title: "Upload"
 description: "How videos go up, straight from the browser to the bucket."
 ---
 
-You drop video files anywhere on the page, or press Upload in the header to select them (src/uploads.tsx, src/components/VideoUpload.tsx).
+Upload in the header opens the upload page (src/pages/UploadPage.tsx).
+There you choose the series that the videos join, or none, and then drop video files on the page or choose them with Choose files.
+The Upload button on the page of a series opens the upload page with that series chosen.
+
+Video files dropped on any other page join the queue too (src/uploads.tsx): on the page of a series, they join that series, and elsewhere no series.
 A file must have a `video/*` content type (worker/app.ts, `VIDEO_CONTENT_TYPE`).
 Files of other types stay out, and the upload panel names them.
 

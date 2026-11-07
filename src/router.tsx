@@ -8,6 +8,7 @@ export type Route =
   | { name: "all-videos" }
   | { name: "history" }
   | { name: "search" }
+  | { name: "upload" }
   | { name: "channel-settings" }
   | { name: "account" }
   | { name: "video"; id: string }
@@ -28,6 +29,7 @@ export function matchRoute(pathname: string): Route {
   if (pathname === "/videos") return { name: "all-videos" };
   if (pathname === "/history") return { name: "history" };
   if (pathname === "/search") return { name: "search" };
+  if (pathname === "/upload") return { name: "upload" };
   if (pathname === "/settings/channel") return { name: "channel-settings" };
   if (pathname === "/settings/account") return { name: "account" };
   const match = /^\/(videos|series|users)\/([^/]+)$/.exec(pathname);

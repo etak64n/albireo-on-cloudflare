@@ -39,9 +39,9 @@ export interface Uploads {
   completed: number;
   /**
    * Puts the videos among the files at the end of the queue, in the order of their names.
-   * They join the series that is named, or else the series whose page is open.
+   * They join the series that is named, no series for null, or else the series whose page is open.
    */
-  add: (files: ArrayLike<File>, seriesId?: string) => void;
+  add: (files: ArrayLike<File>, seriesId?: string | null) => void;
   /** Stops the upload of a video, or takes the video out of the queue before it starts. */
   cancel: (id: number) => void;
   /** Stops the upload that runs, and takes every waiting video out of the queue. */
@@ -64,11 +64,11 @@ export function UploadsProvider({ children }: { children: ReactNode }) {
   const lastId = useRef(0);
   const seriesRef = useRef<string | null>(null);
 
-  const add = useCallback((files: ArrayLike<File>, target?: string) => {
+  const add = useCallback((files: ArrayLike<File>, target?: string | null) => {
     const chosen = Array.from(files);
     const others = chosen.filter((file) => !isVideo(file));
     setNotice(others.length === 0 ? "" : currentMessages().upload.notVideos(others.map((file) => file.name)));
-    const seriesId = target ?? seriesRef.current;
+    const seriesId = target === undefined ? seriesRef.current : target;
     const added = inNameOrder(chosen.filter(isVideo)).map((file): QueuedUpload => {
       lastId.current += 1;
       return { id: lastId.current, file, seriesId, state: "waiting", progress: null, error: "" };

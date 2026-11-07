@@ -20,9 +20,19 @@ import { DropOverlay, UploadButton, UploadPanel } from "./VideoUpload.tsx";
  * The frame of every page: the sidebar of the library on the left, the bar on top with
  * the search, the upload button, and the account, and the page under the bar. On
  * narrow screens the sidebar hides, and the menu button in the bar slides it in from
- * the left. Uploads start from the bar. On the page of a series, they join that series.
+ * the left. The upload button in the bar opens the upload page. Videos dropped on any page
+ * join the upload queue, and on the page of a series they join that series.
  */
-export function Shell({ children, seriesId = null }: { children: ReactNode; seriesId?: string | null }) {
+export function Shell({
+  children,
+  seriesId = null,
+  uploadPage = false,
+}: {
+  children: ReactNode;
+  seriesId?: string | null;
+  /** The upload page, which shows the queue and the place to drop videos itself. */
+  uploadPage?: boolean;
+}) {
   const { setTargetSeries } = useUploads();
   const t = useT();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -69,19 +79,20 @@ export function Shell({ children, seriesId = null }: { children: ReactNode; seri
             </Link>
             <SearchBox />
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              <UploadButton />
+              {/* On the page of a series, the upload page opens with that series chosen. */}
+              <UploadButton seriesId={seriesId ?? undefined} />
               <AccountMenu />
             </div>
           </div>
         </header>
         <main id="main" tabIndex={-1} className="px-4 pt-6 pb-16 outline-none sm:px-6 lg:px-gutter lg:pt-8">
           <div className="@container mx-auto grid max-w-content gap-12">
-            <UploadPanel />
+            {!uploadPage && <UploadPanel />}
             {children}
           </div>
         </main>
       </div>
-      <DropOverlay />
+      {!uploadPage && <DropOverlay />}
     </>
   );
 }

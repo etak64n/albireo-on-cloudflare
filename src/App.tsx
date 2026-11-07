@@ -8,6 +8,7 @@ import { HomePage } from "./pages/HomePage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { SearchPage } from "./pages/SearchPage.tsx";
 import { SeriesPage } from "./pages/SeriesPage.tsx";
+import { UploadPage } from "./pages/UploadPage.tsx";
 import { UserPage } from "./pages/UserPage.tsx";
 import { VideoPage } from "./pages/VideoPage.tsx";
 import { usePathname, useRoute } from "./router.tsx";
@@ -39,6 +40,8 @@ function Page() {
       return <AllVideosPage />;
     case "search":
       return <SearchPage />;
+    case "upload":
+      return <UploadPage />;
     case "history":
       return <HistoryPage />;
     case "channel-settings":

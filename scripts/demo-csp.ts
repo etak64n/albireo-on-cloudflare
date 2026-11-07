@@ -200,7 +200,8 @@ async function main(site: string, toolsFolder: string, base: string): Promise<vo
     });
     // The demo keeps no files, so an upload stops after the browser reads the video,
     // which it does from a blob: URL.
-    await run("Choosing a video to upload", async () => {
+    await run("Choosing a video on the upload page", async () => {
+      await page.goto(`${home}upload`);
       await page.locator('input[type="file"][accept="video/*"]').first().setInputFiles(firstFile(join(site, "media", "videos"), ".mp4"));
       await page.waitForTimeout(3000);
     });

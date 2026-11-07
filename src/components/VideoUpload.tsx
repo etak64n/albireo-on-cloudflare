@@ -1,47 +1,41 @@
-// Uploading: the Upload button in the top bar, the panel that shows the queue, and the
-// cover while videos are dragged over the page. The queue itself runs in src/uploads.tsx,
-// above the pages.
+// Uploading: the Upload button that opens the upload page (src/pages/UploadPage.tsx), the
+// panel that shows the queue, and the cover while videos are dragged over another page.
+// The queue itself runs in src/uploads.tsx, above the pages.
 
 import { Upload, X } from "lucide-react";
-import { useRef, type ChangeEvent } from "react";
 import { useT } from "../i18n.ts";
 import { formatBytes } from "../lib/format.ts";
 import type { UploadProgress } from "../lib/upload.ts";
 import { cn } from "../lib/utils.ts";
+import { Link } from "../router.tsx";
 import { useUploads, type QueuedUpload } from "../uploads.tsx";
 import { Button } from "./ui/button.tsx";
 
+/** The address of the upload page, with the series that it chooses first, if any. */
+export function uploadPath(seriesId?: string): string {
+  return seriesId === undefined ? "/upload" : `/upload?series=${encodeURIComponent(seriesId)}`;
+}
+
 /**
- * Opens the file picker, where several videos can be chosen, and puts them in the queue.
- * In the top bar, it narrows to its icon on small screens. Prominent, it is the primary
- * button with its label at every size. With a series, the videos join that series.
+ * Opens the upload page. With a series, the page chooses that series for the videos. In
+ * the top bar, it narrows to its icon on small screens. Prominent, it is the primary
+ * button with its label at every size.
  */
 export function UploadButton({ prominent = false, seriesId }: { prominent?: boolean; seriesId?: string }) {
-  const uploader = useUploads();
   const t = useT();
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  function handleChange(event: ChangeEvent<HTMLInputElement>) {
-    // Clearing the input empties its list of files, so the files are taken first.
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-    uploader.add(files, seriesId);
-  }
-
   return (
-    <>
-      <input ref={inputRef} type="file" accept="video/*" multiple onChange={handleChange} className="hidden" />
-      <Button
-        variant={prominent ? "primary" : "secondary"}
-        size={prominent ? "lg" : "md"}
-        onClick={() => inputRef.current?.click()}
-        aria-label={t.upload.upload}
-        className={prominent ? undefined : "max-md:w-7 max-md:px-0"}
-      >
+    <Button
+      asChild
+      variant={prominent ? "primary" : "secondary"}
+      size={prominent ? "lg" : "md"}
+      className={prominent ? undefined : "max-md:w-7 max-md:px-0"}
+    >
+      <Link to={uploadPath(seriesId)}>
         <Upload aria-hidden="true" />
-        <span className={prominent ? undefined : "max-md:hidden"}>{t.upload.upload}</span>
-      </Button>
-    </>
+        {/* On small screens the label leaves the bar but stays the name of the link. */}
+        <span className={prominent ? undefined : "max-md:sr-only"}>{t.upload.upload}</span>
+      </Link>
+    </Button>
   );
 }
 
