@@ -88,6 +88,9 @@ jobs:
               }, true);
             });
           });
+          // Each visit of Home is a first one, so it shows the recommendations that the tours expect,
+          // and not videos at random (src/pages/HomePage.tsx).
+          await context.addInitScript(() => localStorage.removeItem("albireo.home.recommendedAt"));
           const page = await context.newPage();
           const client = await context.newCDPSession(page);
 
@@ -142,12 +145,12 @@ jobs:
             await page.waitForLoadState("networkidle");
             await page.mouse.move(760, 520);
           };
-          // The video recommended first on the home page, and the way to play it.
-          const feature = () => page.locator("main a").filter({ has: page.locator("h2") }).first();
+          // The video recommended first on the home page.
+          const firstVideo = () => page.locator('main a[href*="/videos/"]').first();
           // Opens the page of the video recommended first, and shows a part of it at once.
-          const openFeatured = async (heading) => {
+          const openFirst = async (heading) => {
             await openHome();
-            await feature().getByText("Play", { exact: true }).click();
+            await firstVideo().click();
             await page.locator("video").first().waitFor({ state: "attached" });
             await page.waitForLoadState("networkidle");
             await page.getByRole("heading", { name: heading }).evaluate((element) => element.scrollIntoView({ block: "start" }));
@@ -210,12 +213,12 @@ jobs:
           // Watch: the video recommended first, which plays in the player of its page.
           await openHome();
           await record("watch", async () => {
-            const play = feature().getByText("Play", { exact: true });
-            await zoom(await feature().boundingBox(), 1.3, async () => {
-              await pointAt(play);
+            const first = firstVideo();
+            await zoom(await first.boundingBox(), 1.3, async () => {
+              await pointAt(first);
               await pause(1800);
             });
-            await play.click();
+            await first.click();
             const video = page.locator("video").first();
             await video.waitFor({ state: "attached" });
             await page.waitForLoadState("networkidle");
@@ -273,7 +276,7 @@ jobs:
           });
 
           // Attachments: files of several kinds attached to the video, each in the preview over the page.
-          await openFeatured("Attachments");
+          await openFirst("Attachments");
           await record("attachments", async () => {
             for (const fileName of process.env.TOUR_FILES.split(" ")) {
               const preview = page.locator("li").filter({ hasText: fileName }).getByRole("button", { name: "Preview" });
@@ -291,7 +294,7 @@ jobs:
           });
 
           // Comments: a comment, typed and posted. Its time becomes a link, which plays the video from there.
-          await openFeatured("Comments");
+          await openFirst("Comments");
           await record("comments", async () => {
             const field = page.getByPlaceholder("Add a comment");
             const form = await field.boundingBox();

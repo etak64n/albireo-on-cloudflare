@@ -9,7 +9,7 @@ albireo has three lists of videos.
 2. All videos
 3. History
 
-Home (`/`) shows up to 48 videos: the first one large, and the rest below it (src/pages/HomePage.tsx).
+Home (`/`) shows up to 48 videos in a grid (src/pages/HomePage.tsx).
 On the first visit in 15 minutes, it shows the recommendations for the person who signed in. On the visits between, it shows videos at random from the whole library.
 The browser keeps the time of the last recommendations, so each browser counts its own 15 minutes, and D1 keeps nothing for it.
 
