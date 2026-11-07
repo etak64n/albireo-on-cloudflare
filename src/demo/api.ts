@@ -12,11 +12,13 @@ import {
   DESCRIPTION_MAX_LENGTH,
   DISPLAY_NAME_MAX_LENGTH,
   isLanguage,
+  isVideoSort,
   LANGUAGES,
   LIST_PAGE_SIZE,
   RATING_MAX_STARS,
   SEARCH_QUERY_MAX_LENGTH,
   TITLE_MAX_LENGTH,
+  VIDEO_SORTS,
   type CommentResponse,
   type EpisodeLink,
   type HistoryResponse,
@@ -92,7 +94,7 @@ const ROUTES = [
   route("GET", "/api/history", ({ query }) => history(query.get("cursor"))),
   route("GET", "/api/recommendations", () => ({ videos: recommend().map(summary) }) satisfies RecommendationsResponse),
   route("POST", "/api/videos/:id/watched", ({ ids: [id = ""] }) => recordWatch(id)),
-  route("GET", "/api/videos", ({ query }) => listVideos(query.get("uploader"), query.get("cursor"))),
+  route("GET", "/api/videos", ({ query }) => listVideos(query.get("uploader"), query.get("cursor"), query.get("sort") ?? "newest")),
   route("GET", "/api/videos/:id", ({ ids: [id = ""] }) => ({ video: detail(findVideo(id)) }) satisfies VideoResponse),
   route("PATCH", "/api/videos/:id", ({ ids: [id = ""], body }) => updateVideo(id, body)),
   route("GET", "/api/search", ({ query }) => search(query.get("q") ?? "", query.get("cursor"))),
@@ -298,10 +300,28 @@ function newestFirst(): DemoVideo[] {
   return [...library.videos].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || (a.id < b.id ? 1 : -1));
 }
 
-function listVideos(uploaderId: string | null, cursor: string | null): ListVideosResponse {
-  const videos = newestFirst().filter((video) => uploaderId === null || video.uploaderId === uploaderId);
+/** Lists the videos in the order that the Worker uses for the sort (worker/videos.ts). */
+function listVideos(uploaderId: string | null, cursor: string | null, sort: string): ListVideosResponse {
+  if (!isVideoSort(sort)) throw badRequest(`sort must be one of ${VIDEO_SORTS.join(", ")}.`);
+  if (uploaderId !== null && sort !== "newest") throw badRequest("The videos of one person list from the newest only.");
+  const newest = newestFirst().filter((video) => uploaderId === null || video.uploaderId === uploaderId);
+  const videos = sort === "newest" ? newest : sort === "oldest" ? [...newest].reverse() : byRating(newest);
   const { page, nextCursor } = pageOf(videos, cursor);
   return { videos: page.map(summary), nextCursor };
+}
+
+/** The highest average first, as its stars times 1000 rounded down, then more ratings, then the newest. */
+function byRating(newest: DemoVideo[]): DemoVideo[] {
+  const keyOf = (video: DemoVideo) => {
+    const { average, count } = ratingOf(video.id);
+    return { score: average === null ? 0 : Math.floor(average * 1000), count };
+  };
+  // The sort is stable, so videos with the same score and count keep the order from the newest.
+  return [...newest].sort((a, b) => {
+    const first = keyOf(a);
+    const second = keyOf(b);
+    return second.score - first.score || second.count - first.count;
+  });
 }
 
 /** The videos that Alex watched, from the last watched. */

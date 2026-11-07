@@ -27,6 +27,10 @@ export interface VideoRecord {
   uploaderAvatarKey: string | null;
   seriesId: string | null;
   seriesPosition: number | null;
+  /** How many people rated the video (migrations/0010_video_ratings.sql). */
+  ratingCount: number;
+  /** The average stars times 1000, rounded down, and 0 when nobody rated the video. */
+  ratingScore: number;
 }
 
 export interface NewUpload {
@@ -50,8 +54,16 @@ export interface MediaInfo {
   height: number | null;
 }
 
-/** Position in the list of ready videos, which runs from the newest. */
+/** Position in a list that runs by the time of upload, from the newest or from the oldest. */
 export interface ListCursor {
+  createdAt: string;
+  id: string;
+}
+
+/** Position in the list of ready videos that runs from the highest rated. */
+export interface RatingCursor {
+  score: number;
+  count: number;
   createdAt: string;
   id: string;
 }
@@ -86,11 +98,14 @@ interface VideoRow {
   uploader_avatar_key: string | null;
   series_id: string | null;
   series_position: number | null;
+  rating_count: number;
+  rating_score: number;
 }
 
 const COLUMNS =
   "id, title, description, status, object_key, upload_id, content_type, file_size, part_size, part_count, "
-  + "duration_sec, width, height, thumbnail_key, created_at, updated_at, uploader_id, series_id, series_position";
+  + "duration_sec, width, height, thumbnail_key, created_at, updated_at, uploader_id, series_id, series_position, "
+  + "rating_count, rating_score";
 
 // Every read joins the uploader, so that lists show names without one query per video.
 const SELECT = `SELECT ${COLUMNS.split(", ").map((column) => `v.${column}`).join(", ")},
@@ -110,7 +125,7 @@ export class VideoRepository {
       .prepare(
         `INSERT INTO videos (${COLUMNS}) VALUES (?, ?, ?, 'uploading', ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, ?, ?, ?, ?, `
           + "CASE WHEN ? IS NULL THEN NULL ELSE "
-          + "(SELECT COALESCE(MAX(series_position), 0) + 1 FROM videos WHERE series_id = ?) END)",
+          + "(SELECT COALESCE(MAX(series_position), 0) + 1 FROM videos WHERE series_id = ?) END, 0, 0)",
       )
       .bind(
         video.id,
@@ -137,8 +152,17 @@ export class VideoRepository {
     return row === null ? null : toRecord(row);
   }
 
-  /** Lists ready videos from the newest, starting after the cursor. */
-  async listReady(limit: number, after: ListCursor | null, filter: ListFilter): Promise<VideoRecord[]> {
+  /**
+   * Lists ready videos from the newest or from the oldest, starting after the cursor. The
+   * cursor compares as one row value, so that the query starts at it in the index and a
+   * later page reads no more rows than the first.
+   */
+  async listReady(
+    limit: number,
+    after: ListCursor | null,
+    filter: ListFilter,
+    order: "newest" | "oldest" = "newest",
+  ): Promise<VideoRecord[]> {
     const conditions = ["v.status = 'ready'"];
     const values: unknown[] = [];
     if (filter.uploaderId !== null) {
@@ -146,12 +170,36 @@ export class VideoRepository {
       values.push(filter.uploaderId);
     }
     if (after !== null) {
-      conditions.push("(v.created_at < ? OR (v.created_at = ? AND v.id < ?))");
-      values.push(after.createdAt, after.createdAt, after.id);
+      conditions.push(`(v.created_at, v.id) ${order === "newest" ? "<" : ">"} (?, ?)`);
+      values.push(after.createdAt, after.id);
+    }
+    values.push(limit);
+    const direction = order === "newest" ? "DESC" : "ASC";
+    const { results } = await this.#db
+      .prepare(`${SELECT} WHERE ${conditions.join(" AND ")} ORDER BY v.created_at ${direction}, v.id ${direction} LIMIT ?`)
+      .bind(...values)
+      .all<VideoRow>();
+    return results.map(toRecord);
+  }
+
+  /**
+   * Lists ready videos from the highest average rating, starting after the cursor: more
+   * ratings first among equal averages, then the newest. The videos that nobody rated come
+   * last. The index videos_status_rating holds this order.
+   */
+  async listByRating(limit: number, after: RatingCursor | null): Promise<VideoRecord[]> {
+    const conditions = ["v.status = 'ready'"];
+    const values: unknown[] = [];
+    if (after !== null) {
+      conditions.push("(v.rating_score, v.rating_count, v.created_at, v.id) < (?, ?, ?, ?)");
+      values.push(after.score, after.count, after.createdAt, after.id);
     }
     values.push(limit);
     const { results } = await this.#db
-      .prepare(`${SELECT} WHERE ${conditions.join(" AND ")} ORDER BY v.created_at DESC, v.id DESC LIMIT ?`)
+      .prepare(
+        `${SELECT} WHERE ${conditions.join(" AND ")} `
+          + "ORDER BY v.rating_score DESC, v.rating_count DESC, v.created_at DESC, v.id DESC LIMIT ?",
+      )
       .bind(...values)
       .all<VideoRow>();
     return results.map(toRecord);
@@ -342,5 +390,7 @@ function toRecord(row: VideoRow): VideoRecord {
     uploaderAvatarKey: row.uploader_avatar_key,
     seriesId: row.series_id,
     seriesPosition: row.series_position,
+    ratingCount: row.rating_count,
+    ratingScore: row.rating_score,
   };
 }

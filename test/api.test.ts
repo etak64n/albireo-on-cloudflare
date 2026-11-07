@@ -260,6 +260,57 @@ describe("library", () => {
     expect(second.nextCursor).toBeNull();
   });
 
+  it("lists videos from the oldest", async () => {
+    const app = await createTestApp();
+    for (const title of ["Week 1", "Week 2", "Week 3"]) await uploadVideo(app, title, MIB);
+    const { videos } = await body<ListVideosResponse>(await app.signedRequest("/api/videos?sort=oldest"));
+    expect(videos.map((video) => video.title)).toEqual(["Week 1", "Week 2", "Week 3"]);
+  });
+
+  it("lists videos from the highest rated, with more ratings first among equals and the unrated last", async () => {
+    const app = await createTestApp();
+    const ids: Record<string, string> = {};
+    for (const title of ["A", "B", "C", "D"]) ids[title] = (await uploadVideo(app, title, MIB)).video.id;
+    const rate = (email: string, title: string, stars: number) =>
+      app.requestAs(email, `/api/videos/${ids[title]}/rating`, json({ stars }, "PUT"));
+    await rate(VIEWER_EMAIL, "A", 4);
+    await rate(VIEWER_EMAIL, "B", 5);
+    await rate(VIEWER_EMAIL, "C", 4);
+    await rate(OTHER_EMAIL, "C", 4);
+    const titles = async () =>
+      (await body<ListVideosResponse>(await app.signedRequest("/api/videos?sort=rating"))).videos.map((video) => video.title);
+    expect(await titles()).toEqual(["B", "C", "A", "D"]);
+
+    // Without its rating, B joins the unrated videos, from the newest.
+    await app.signedRequest(`/api/videos/${ids["B"]}/rating`, { method: "DELETE" });
+    expect(await titles()).toEqual(["C", "A", "D", "B"]);
+  });
+
+  it("pages through the highest rated videos", async () => {
+    const app = await createTestApp();
+    const ids: string[] = [];
+    for (let number = 1; number <= 50; number += 1) ids.push((await uploadVideo(app, `Video ${number}`, MIB)).video.id);
+    await app.signedRequest(`/api/videos/${ids[0]}/rating`, json({ stars: 5 }, "PUT"));
+
+    const first = await body<ListVideosResponse>(await app.signedRequest("/api/videos?sort=rating"));
+    expect(first.videos.map((video) => video.title).slice(0, 2)).toEqual(["Video 1", "Video 50"]);
+    expect(first.videos).toHaveLength(48);
+    const second = await body<ListVideosResponse>(
+      await app.signedRequest(`/api/videos?sort=rating&cursor=${encodeURIComponent(first.nextCursor ?? "")}`),
+    );
+    expect(second.videos.map((video) => video.title)).toEqual(["Video 3", "Video 2"]);
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it("refuses an unknown order, another order for the videos of one person, and a cursor of another order", async () => {
+    const app = await createTestApp();
+    for (let number = 1; number <= 49; number += 1) await uploadVideo(app, `Video ${number}`, MIB);
+    expect((await app.signedRequest("/api/videos?sort=title")).status).toBe(400);
+    expect((await app.signedRequest("/api/videos?sort=oldest&uploader=user000000000001")).status).toBe(400);
+    const { nextCursor } = await body<ListVideosResponse>(await app.signedRequest("/api/videos"));
+    expect((await app.signedRequest(`/api/videos?sort=rating&cursor=${encodeURIComponent(nextCursor ?? "")}`)).status).toBe(400);
+  });
+
   it("refuses a cursor that it did not issue", async () => {
     const app = await createTestApp();
     expect((await app.signedRequest("/api/videos?cursor=not-a-cursor")).status).toBe(400);

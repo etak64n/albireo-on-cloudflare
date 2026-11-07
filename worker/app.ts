@@ -20,12 +20,14 @@ import {
   DISPLAY_NAME_MAX_LENGTH,
   ID_PATTERN,
   isLanguage,
+  isVideoSort,
   LANGUAGES,
   LIST_PAGE_SIZE,
   MAX_PART_URLS_PER_REQUEST,
   RATING_MAX_STARS,
   SEARCH_QUERY_MAX_LENGTH,
   TITLE_MAX_LENGTH,
+  VIDEO_SORTS,
   type ApiErrorBody,
   type AttachmentResponse,
   type CommentResponse,
@@ -90,7 +92,7 @@ import { StorageError, type CompletedPart, type ObjectStore } from "./storage.ts
 import { MAX_OBJECT_SIZE, planParts, type PartPlan } from "./upload-plan.ts";
 import { UserRepository, type UserRecord } from "./users.ts";
 import { deviceOf, placeOf, SessionRepository, sessionIdOf } from "./sessions.ts";
-import { VideoRepository, type ListCursor, type VideoRecord, type WatchedVideoRecord } from "./videos.ts";
+import { VideoRepository, type ListCursor, type RatingCursor, type VideoRecord, type WatchedVideoRecord } from "./videos.ts";
 
 export type IdKind = "video" | "user" | "series" | "comment" | "attachment";
 
@@ -333,22 +335,33 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
     return c.body(null, 204);
   });
 
+  // Every order reads one page from an index, starting at the cursor, and no ratings.
   app.get("/api/videos", async (c) => {
     const cursor = c.req.query("cursor");
     const uploader = c.req.query("uploader");
+    const sort = c.req.query("sort") ?? "newest";
     if (uploader !== undefined && !ID_PATTERN.test(uploader)) throw badRequest("uploader must be a user ID.");
-    const rows = await new VideoRepository(c.env.DB).listReady(
-      LIST_PAGE_SIZE + 1,
-      cursor === undefined ? null : decodeCursor(cursor),
-      { uploaderId: uploader ?? null },
-    );
+    if (!isVideoSort(sort)) throw badRequest(`sort must be one of ${VIDEO_SORTS.join(", ")}.`);
+    if (uploader !== undefined && sort !== "newest") throw badRequest("The videos of one person list from the newest only.");
+    const repository = new VideoRepository(c.env.DB);
+    const rows = sort === "rating"
+      ? await repository.listByRating(LIST_PAGE_SIZE + 1, cursor === undefined ? null : decodeRatingCursor(cursor))
+      : await repository.listReady(
+        LIST_PAGE_SIZE + 1,
+        cursor === undefined ? null : decodeCursor(cursor),
+        { uploaderId: uploader ?? null },
+        sort,
+      );
     const page = rows.slice(0, LIST_PAGE_SIZE);
     const objectStore = store(c.get("config"));
     const videos = await Promise.all(page.map((video) => toSummary(video, objectStore)));
     const last = page.at(-1);
-    const nextCursor = rows.length > LIST_PAGE_SIZE && last !== undefined
-      ? encodeCursor({ createdAt: last.createdAt, id: last.id })
-      : null;
+    let nextCursor: string | null = null;
+    if (rows.length > LIST_PAGE_SIZE && last !== undefined) {
+      nextCursor = sort === "rating"
+        ? encodeRatingCursor({ score: last.ratingScore, count: last.ratingCount, createdAt: last.createdAt, id: last.id })
+        : encodeCursor({ createdAt: last.createdAt, id: last.id });
+    }
     return c.json<ListVideosResponse>({ videos, nextCursor });
   });
 
@@ -1083,6 +1096,30 @@ function extensionOf(fileName: string): string {
 
 function encodeCursor(cursor: ListCursor): string {
   return btoa(JSON.stringify([cursor.createdAt, cursor.id])).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function encodeRatingCursor(cursor: RatingCursor): string {
+  const json = JSON.stringify([cursor.score, cursor.count, cursor.createdAt, cursor.id]);
+  return btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function decodeRatingCursor(value: string): RatingCursor {
+  try {
+    const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
+    const parsed: unknown = JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "=")));
+    if (Array.isArray(parsed) && parsed.length === 4) {
+      const [score, count, createdAt, id]: unknown[] = parsed;
+      if (
+        Number.isSafeInteger(score) && Number.isSafeInteger(count) && typeof createdAt === "string"
+        && typeof id === "string" && ID_PATTERN.test(id)
+      ) {
+        return { score: score as number, count: count as number, createdAt, id };
+      }
+    }
+  } catch {
+    // An unreadable cursor gets the same answer as a well-formed but wrong one.
+  }
+  throw badRequest("The cursor is not valid. Pass nextCursor from the previous page.");
 }
 
 function decodeCursor(value: string): ListCursor {

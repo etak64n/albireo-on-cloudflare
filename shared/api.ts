@@ -247,6 +247,18 @@ export interface SearchResponse {
   nextCursor: string | null;
 }
 
+/**
+ * The orders of the list of all videos: from the newest, from the oldest, or from the
+ * highest average rating, where more ratings come first among equal averages and the
+ * videos that nobody rated come last.
+ */
+export const VIDEO_SORTS = ["newest", "oldest", "rating"] as const;
+export type VideoSort = (typeof VIDEO_SORTS)[number];
+
+export function isVideoSort(value: string): value is VideoSort {
+  return (VIDEO_SORTS as readonly string[]).includes(value);
+}
+
 export interface ListVideosResponse {
   videos: VideoSummary[];
   /** Pass this as the cursor query parameter to get the next page, or null on the last page. */

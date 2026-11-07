@@ -88,6 +88,12 @@ const en = {
     recommended: "Recommended",
     play: "Play",
   },
+  sort: {
+    label: "Sort",
+    newest: "Newest",
+    oldest: "Oldest",
+    rating: "Highest rated",
+  },
   search: {
     title: "Search",
     resultsFor: (query: string) => `Results for “${query}”`,
@@ -269,6 +275,12 @@ const ja: Messages = {
   home: {
     recommended: "おすすめ",
     play: "再生",
+  },
+  sort: {
+    label: "並べ替え",
+    newest: "新しい順",
+    oldest: "古い順",
+    rating: "評価が高い順",
   },
   search: {
     title: "検索",

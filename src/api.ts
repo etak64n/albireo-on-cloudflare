@@ -32,6 +32,7 @@ import type {
   UpdateVideoRequest,
   UserResponse,
   VideoResponse,
+  VideoSort,
 } from "../shared/api.ts";
 import { currentMessages } from "./i18n.ts";
 
@@ -98,8 +99,10 @@ export const api = {
     request<HistoryResponse>(cursor === null ? "/api/history" : `/api/history?cursor=${encodeURIComponent(cursor)}`, "GET"),
   recordWatch: (videoId: string) => request<void>(`/api/videos/${videoId}/watched`, "POST"),
 
-  listVideos: (cursor: string | null, uploaderId: string | null = null) => {
+  /** Lists videos from the newest, or in another order of the whole library (VideoSort). */
+  listVideos: (cursor: string | null, uploaderId: string | null = null, sort: VideoSort = "newest") => {
     const query = new URLSearchParams();
+    if (sort !== "newest") query.set("sort", sort);
     if (cursor !== null) query.set("cursor", cursor);
     if (uploaderId !== null) query.set("uploader", uploaderId);
     const search = query.toString();

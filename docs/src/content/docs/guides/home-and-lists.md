@@ -16,7 +16,9 @@ The recommendations come from the newest 100 videos and the last 100 videos that
 2. The videos that they have not watched: first those of the series and the uploaders that they watched before, then the rest from the newest
 3. The videos that they watched, from the one watched longest ago
 
-All videos (`/videos`) lists every series, then every video from the newest, 48 per page (worker/videos.ts, shared/api.ts).
+All videos (`/videos`) lists every video, 48 per page, in the order that you choose: from the newest, from the oldest, or from the highest rated (worker/videos.ts, shared/api.ts).
+The highest rated come by their average stars, with more ratings first among equal averages, and the videos that nobody rated come last.
+The order stays in the address, such as `/videos?sort=rating`. The series are in the sidebar.
 
 Before the library has its first video, Home and All videos say that it has none yet, with a button that uploads one (src/components/EmptyLibrary.tsx).
 
