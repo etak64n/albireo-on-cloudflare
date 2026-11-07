@@ -4,6 +4,7 @@ import { PageHeader } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { Label } from "../components/ui/field.tsx";
+import { Select } from "../components/ui/select.tsx";
 import { UploadPanel } from "../components/VideoUpload.tsx";
 import { useT } from "../i18n.ts";
 import { usePageTitle } from "../lib/title.ts";
@@ -46,20 +47,13 @@ export function UploadPage() {
       <div className="grid gap-6">
         <div className="grid max-w-sm gap-1.5">
           <Label htmlFor="upload-series">{t.common.series}</Label>
-          <select
+          <Select
             id="upload-series"
             value={seriesId ?? ""}
-            onChange={(event) => setChosen(event.target.value === "" ? null : event.target.value)}
+            options={[{ value: "", label: t.video.noSeries }, ...(series ?? []).map((item) => ({ value: item.id, label: item.title }))]}
+            onChange={(next) => setChosen(next === "" ? null : next)}
             disabled={series === null}
-            className="field"
-          >
-            <option value="">{t.video.noSeries}</option>
-            {series?.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.title}
-              </option>
-            ))}
-          </select>
+          />
         </div>
         <div
           className={cn(

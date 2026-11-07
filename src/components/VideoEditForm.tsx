@@ -7,6 +7,7 @@ import { cn } from "../lib/utils.ts";
 import { Link } from "../router.tsx";
 import { Button, buttonVariants } from "./ui/button.tsx";
 import { Input, Label, Textarea } from "./ui/field.tsx";
+import { Select } from "./ui/select.tsx";
 
 /**
  * The title and the description of a video on its page. For the uploader of the video and
@@ -96,14 +97,17 @@ export function VideoEditForm({
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="video-series">{t.common.series}</Label>
-        <select id="video-series" value={seriesId} onChange={(e) => setSeriesId(e.target.value)} disabled={seriesList === null} className="field">
-          <option value="">{t.video.noSeries}</option>
-          {seriesList?.map((series) => (
-            <option key={series.id} value={series.id}>
-              {series.title}
-            </option>
-          ))}
-        </select>
+        {/* Until the list of series loads, the field shows the series of the video. */}
+        <Select
+          id="video-series"
+          value={seriesId}
+          options={[
+            { value: "", label: t.video.noSeries },
+            ...(seriesList ?? (video.series === null ? [] : [video.series])).map((series) => ({ value: series.id, label: series.title })),
+          ]}
+          onChange={setSeriesId}
+          disabled={seriesList === null}
+        />
       </div>
       {error && <p className="error-box">{error}</p>}
       <div className="flex gap-2">

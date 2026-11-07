@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { isLanguage, LANGUAGES, type Language, type Passkey, type Session, type SignIn } from "../../shared/api.ts";
+import { LANGUAGES, type Language, type Passkey, type Session, type SignIn } from "../../shared/api.ts";
 import { api } from "../api.ts";
 import { DetailTable, PageHeader, Section } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { Button } from "../components/ui/button.tsx";
+import { Select } from "../components/ui/select.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 import { LANGUAGE_NAMES, useLanguage, useT, type Messages } from "../i18n.ts";
 import { formatDate, formatDateTime } from "../lib/format.ts";
@@ -127,21 +128,14 @@ function PreferencesSection() {
             label: t.account.language,
             value: (
               // The negative margins keep the row as high as the rows of text.
-              <select
+              <Select
                 value={me.language}
-                onChange={(event) => {
-                  if (isLanguage(event.target.value)) void choose(event.target.value);
-                }}
+                options={LANGUAGES.map((language) => ({ value: language, label: LANGUAGE_NAMES[language], lang: language }))}
+                onChange={(language) => void choose(language)}
                 disabled={saving}
                 aria-label={t.account.language}
-                className="field -my-1 block w-auto"
-              >
-                {LANGUAGES.map((language) => (
-                  <option key={language} value={language} lang={language}>
-                    {LANGUAGE_NAMES[language]}
-                  </option>
-                ))}
-              </select>
+                className="-my-1 w-fit"
+              />
             ),
           },
         ]}
