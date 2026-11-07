@@ -54,7 +54,7 @@ jobs:
           TOUR_SERIES: SQL in 20 lessons
           TOUR_EPISODE: "SQL lesson 8:"
           # The files that the attachments tour previews, of the featured video, one of each kind.
-          TOUR_FILES: label-the-data.pdf label-the-data.pptx bar-chart.png uploads-by-team.csv chart-checklist.md
+          TOUR_FILES: label-the-data.pdf label-the-data.pptx bar-chart.png uploads-by-team.csv chart-colors.json bar-chart.py chart-checklist.md
           # The comment that the comments tour posts. Its time becomes a link in the posted comment.
           TOUR_COMMENT: Trying this in our weekly report, starting with the chart at 0:05.
           # A word of the titles of the sample videos, which the search tour finds.
