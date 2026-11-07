@@ -156,10 +156,14 @@ describe("validateSettings", () => {
     ]);
   });
 
-  it("requires a theme folder relative to the project", () => {
-    expect(problemsOf(settingsWith({ "appearance.theme": "/etc/theme" }))).toEqual([
-      'appearance.theme must be a folder path that starts with "./" or "../", without spaces.',
+  it("requires theme folders relative to the project", () => {
+    expect(problemsOf(settingsWith({ "appearance.themes.dark": "/etc/theme" }))).toEqual([
+      'appearance.themes.dark must be a folder path that starts with "./" or "../", without spaces.',
     ]);
+  });
+
+  it("requires a theme folder for each mode of the device", () => {
+    expect(problemsOf(settingsWith({ "appearance.themes.light": undefined }))).toEqual(["appearance.themes.light is missing."]);
   });
 
   it("limits signed URLs to seven days", () => {

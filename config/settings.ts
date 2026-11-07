@@ -57,10 +57,18 @@ export interface AppearanceSettings {
   /** The name of the library, shown in the side pane and the browser tab. */
   siteName: string;
   /**
-   * The theme folder, relative to the project root. It holds theme.css, which sets
-   * the colors, corners, shadows, and fonts, and logo.svg, the mark of the library.
+   * The theme folders, relative to the project root: light while the device is in light
+   * mode, and dark while it is in dark mode. Each holds theme.css, which sets the colors,
+   * corners, shadows, and fonts, and logo.svg, the mark of the library. The same folder
+   * in both keeps one look.
    */
-  theme: string;
+  themes: ThemeFolders;
+}
+
+/** The theme folder for each mode of the device. */
+export interface ThemeFolders {
+  light: string;
+  dark: string;
 }
 
 export interface ProductionSettings {
@@ -294,10 +302,14 @@ function readTtl(root: Fields, problems: Problems): number {
 function readAppearance(input: unknown, problems: Problems): AppearanceSettings | null {
   const appearance = readObject(input, "appearance", problems);
   if (appearance === null) return null;
-  checkKeys(appearance, "appearance.", ["siteName", "theme"], problems);
+  checkKeys(appearance, "appearance.", ["siteName", "themes"], problems);
   const siteName = readPattern(appearance, "siteName", "appearance.", SITE_NAME, "1 to 40 characters that do not start or end with a space", problems);
-  const theme = readPattern(appearance, "theme", "appearance.", RELATIVE_PATH, 'a folder path that starts with "./" or "../", without spaces', problems);
-  return { siteName, theme };
+  const themes = readObject(appearance["themes"], "appearance.themes", problems);
+  if (themes === null) return null;
+  checkKeys(themes, "appearance.themes.", ["light", "dark"], problems);
+  const folder = (mode: keyof ThemeFolders) =>
+    readPattern(themes, mode, "appearance.themes.", RELATIVE_PATH, 'a folder path that starts with "./" or "../", without spaces', problems);
+  return { siteName, themes: { light: folder("light"), dark: folder("dark") } };
 }
 
 // Reads a list of lowercase email addresses. An empty list is allowed: then nobody is an admin.

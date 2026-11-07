@@ -4,9 +4,12 @@ description: "The colors, corners, shadows, fonts, and logo of the library."
 ---
 
 A theme is a folder with two files: theme.css for the colors, corners, shadows, and fonts, and logo.svg for the logo.
-`appearance.theme` names the folder, and albireo includes `./themes/light` and `./themes/dark`.
+`appearance.themes` names two folders: `light` while the device is in light mode, and `dark` while it is in dark mode.
+albireo includes `./themes/light` and `./themes/dark`.
+The page follows the mode of the device and switches with it at once, without a reload. The same folder in both keeps one look.
 
-theme.css sets these variables, and src/styles.css turns them into the styles of the app.
+theme.css sets these variables in `:root`, and src/styles.css turns them into the styles of the app.
+The build puts theme.css of the dark theme inside a media query for dark mode, so theme.css holds rules only, without `@import`.
 
 - Accent: `--theme-accent`, `--theme-accent-hover`, `--theme-accent-subtle`, `--theme-on-accent`, and `--theme-focus-ring`
 - Text: `--theme-text-heading`, `--theme-text-strong`, `--theme-text-control`, `--theme-text`, `--theme-text-label`, `--theme-text-subdued`, and `--theme-text-placeholder`
@@ -17,7 +20,7 @@ theme.css sets these variables, and src/styles.css turns them into the styles of
 - Shadows of what floats over the page: `--theme-shadow-tooltip` and `--theme-shadow-popover`
 - Fonts: `--theme-font` and `--theme-font-mono`
 
-The logo also becomes the favicon (src/main.tsx).
+The sidebar shows the logo of the theme that matches the mode, and the logo of the light theme also becomes the favicon (src/main.tsx).
 When either file is missing, `cf dev` and the build stop with an error, so a typo in the path does not ship an unstyled library (vite.config.ts).
 
-To make a theme of your own, copy themes/light to a folder of yours, change the values and the logo, and point `appearance.theme` at the folder.
+To make a theme of your own, copy themes/light to a folder of yours, change the values and the logo, and point `appearance.themes.light` or `appearance.themes.dark` at the folder.

@@ -10,6 +10,6 @@ import { albireoAppearance } from "./vite.config.ts";
 // The demo has no albireo.config.ts, so it names its look here: the name and the light
 // theme that albireo comes with. scripts/demo-media.ts adds the videos and the files.
 export default defineConfig({
-  plugins: [react(), tailwindcss(), albireoAppearance({ siteName: "albireo", theme: "./themes/light" })],
+  plugins: [react(), tailwindcss(), albireoAppearance({ siteName: "albireo", themes: { light: "./themes/light", dark: "./themes/dark" } })],
   build: { outDir: "demo-dist", emptyOutDir: true },
 });

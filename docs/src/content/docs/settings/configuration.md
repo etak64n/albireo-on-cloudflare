@@ -35,12 +35,13 @@ export default defineAlbireoConfig({
   // People who can edit every video and every series, by the email that Cloudflare
   // Access reports. Everyone else edits only the videos and series of their own.
   admins: ["admin@example.com"],
-  // How the library looks: its name, and the theme folder with theme.css (colors,
-  // corners, shadows, and fonts) and logo.svg. albireo includes ./themes/light and
+  // How the library looks: its name, and the theme folders with theme.css (colors,
+  // corners, shadows, and fonts) and logo.svg, light while the device is in light mode
+  // and dark while it is in dark mode. albireo includes ./themes/light and
   // ./themes/dark, and a theme folder of your own works the same way.
   appearance: {
     siteName: "albireo",
-    theme: "./themes/light",
+    themes: { light: "./themes/light", dark: "./themes/dark" },
   },
   production: {
     domain: "videos.example.com",
@@ -100,9 +101,9 @@ Every setting is required, and a key that albireo does not read is an error, whi
 - `appearance.siteName`
   - The name in the sidebar and in the title of every page
   - 1 to 40 characters that do not start or end with a space
-- `appearance.theme`
-  - The theme folder, relative to the project root. [Themes](../themes/) describes its files.
-  - A path that starts with `./` or `../`, without spaces
+- `appearance.themes.light` and `appearance.themes.dark`
+  - The theme folders, relative to the project root: `light` while the device is in light mode, and `dark` while it is in dark mode. [Themes](../themes/) describes their files.
+  - Paths that start with `./` or `../`, without spaces. The same folder in both keeps one look.
 - `production.domain`
   - The hostname that serves albireo, in lowercase, without a scheme or a path
   - Its zone must be in the same Cloudflare account.

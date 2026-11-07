@@ -103,12 +103,13 @@ export default defineAlbireoConfig({
   // People who can edit every video and every series, by the email that Cloudflare
   // Access reports. Everyone else edits only the videos and series of their own.
   admins: ["admin@example.com"],
-  // How the library looks: its name, and the theme folder with theme.css (colors,
-  // corners, shadows, and fonts) and logo.svg. albireo includes ./themes/light and
+  // How the library looks: its name, and the theme folders with theme.css (colors,
+  // corners, shadows, and fonts) and logo.svg, light while the device is in light mode
+  // and dark while it is in dark mode. albireo includes ./themes/light and
   // ./themes/dark, and a theme folder of your own works the same way.
   appearance: {
     siteName: "albireo",
-    theme: "./themes/light",
+    themes: { light: "./themes/light", dark: "./themes/dark" },
   },
   production: {
     domain: "videos.example.com",

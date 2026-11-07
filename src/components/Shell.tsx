@@ -65,7 +65,7 @@ export function Shell({ children, seriesId = null }: { children: ReactNode; seri
               <MenuIcon />
             </Button>
             <Link to="/" className="mr-1 shrink-0 rounded-xs lg:hidden">
-              <img src={appearance.logo} alt={appearance.siteName} className="size-6" />
+              <Logo alt={appearance.siteName} className="size-6" />
             </Link>
             <SearchBox />
             <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -90,7 +90,7 @@ export function Shell({ children, seriesId = null }: { children: ReactNode; seri
 function Brand() {
   return (
     <Link to="/" className="flex min-w-0 items-center gap-2 rounded-xs py-1">
-      <img src={appearance.logo} alt="" className="size-6 shrink-0" />
+      <Logo alt="" className="size-6 shrink-0" />
       <span className="truncate text-sm font-semibold text-heading">{appearance.siteName}</span>
     </Link>
   );
@@ -292,5 +292,18 @@ function NewSeriesForm({ onDone }: { onDone: () => void }) {
         <Button onClick={onDone}>{t.common.cancel}</Button>
       </div>
     </form>
+  );
+}
+
+/**
+ * The logo of the theme that matches the mode of the device. The picture takes no box of
+ * its own, so the image lays out as if it stood alone.
+ */
+function Logo({ alt, className }: { alt: string; className: string }) {
+  return (
+    <picture className="contents">
+      <source srcSet={appearance.darkLogo} media="(prefers-color-scheme: dark)" />
+      <img src={appearance.logo} alt={alt} className={className} />
+    </picture>
   );
 }

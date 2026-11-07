@@ -4,8 +4,10 @@ declare module "virtual:albireo-appearance" {
   const appearance: {
     /** The name of the library. */
     siteName: string;
-    /** URL of logo.svg of the theme folder. */
+    /** URL of logo.svg of the light theme, which is also the favicon. */
     logo: string;
+    /** URL of logo.svg of the dark theme, for pages in dark mode. */
+    darkLogo: string;
   };
   export default appearance;
 }
