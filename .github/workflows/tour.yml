@@ -88,8 +88,8 @@ jobs:
               }, true);
             });
           });
-          // Each visit of Home is a first one, so it shows the recommendations that the tours expect,
-          // and not videos at random (src/pages/HomePage.tsx).
+          // Each load of a page starts without the time of the last recommendations, so Home shows
+          // the recommendations that the tours expect, and not videos at random (src/pages/HomePage.tsx).
           await context.addInitScript(() => localStorage.removeItem("albireo.home.recommendedAt"));
           const page = await context.newPage();
           const client = await context.newCDPSession(page);

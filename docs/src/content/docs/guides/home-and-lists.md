@@ -9,9 +9,10 @@ albireo has three lists of videos.
 2. All videos
 3. History
 
-Home (`/`) shows up to 48 videos in a grid (src/pages/HomePage.tsx).
-On the first visit in 15 minutes, it shows the recommendations for the person who signed in. On the visits between, it shows videos at random from the whole library.
+Home (`/`) shows up to 48 videos in a grid, without a title (src/pages/HomePage.tsx).
+When the page loads for the first time in 15 minutes, as when you open albireo or reload it, Home shows the recommendations for the person who signed in. When the page loads again before then, Home shows videos at random from the whole library.
 The browser keeps the time of the last recommendations, so each browser counts its own 15 minutes, and D1 keeps nothing for it.
+Coming back to Home from another page shows the same videos again, and asks the Worker nothing. The list loads again only when the page loads, and when an upload finishes.
 
 The recommendations come from the newest 100 videos and the last 100 videos that the person watched, in this order, up to 48 videos (worker/app.ts, `recommend`).
 
@@ -19,7 +20,7 @@ The recommendations come from the newest 100 videos and the last 100 videos that
 2. The videos that they have not watched: first those of the series and the uploaders that they watched before, then the rest from the newest
 3. The videos that they watched, from the one watched longest ago
 
-The random videos start at a random place among the IDs of the videos, which are random, and take the next ready videos in the order of their IDs, then shuffle them. A visit reads about 48 rows of D1 (worker/videos.ts, `sampleReady`).
+The random videos start at a random place among the IDs of the videos, which are random, and take the next ready videos in the order of their IDs, then shuffle them. A load of the list reads about 48 rows of D1 (worker/videos.ts, `sampleReady`).
 
 All videos (`/videos`) lists every video, 48 per page, in the order that you choose: from the newest, from the oldest, or from the highest rated (worker/videos.ts, shared/api.ts).
 The highest rated come by their average stars, with more ratings first among equal averages, and the videos that nobody rated come last.

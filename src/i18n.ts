@@ -83,10 +83,6 @@ const en = {
     pdfFailed: (reason: string) => `The PDF could not be opened: ${reason}`,
     firstRows: (count: number) => `The first ${count.toLocaleString("en")} rows.`,
   },
-  home: {
-    recommended: "Recommended",
-    random: "Random",
-  },
   sort: {
     label: "Sort",
     newest: "Newest",
@@ -270,10 +266,6 @@ const ja: Messages = {
     unreadable: "ファイルを読み込めませんでした。ネットワーク、バケットの CORS ルール、このサイトの Content-Security-Policy を確認してください。",
     pdfFailed: (reason) => `PDF を開けませんでした：${reason}`,
     firstRows: (count) => `最初の ${count.toLocaleString("ja")} 行です。`,
-  },
-  home: {
-    recommended: "おすすめ",
-    random: "ランダム",
   },
   sort: {
     label: "並べ替え",
