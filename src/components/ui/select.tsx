@@ -119,8 +119,9 @@ export function Select<T extends string>({
         }}
         className={cn(
           "field flex cursor-pointer items-center justify-between gap-2 text-left disabled:cursor-default",
-          // While the menu is open, the field keeps the ring of a field in use.
-          "data-[state=open]:outline-4 data-[state=open]:outline-solid data-[state=open]:outline-[color:var(--theme-focus-ring)]",
+          // While the menu is open, the field keeps the ring of a field in use, unless the
+          // search field of the menu has it: one ring shows where the keys go.
+          !withSearch && "data-[state=open]:outline-4 data-[state=open]:outline-solid data-[state=open]:outline-[color:var(--theme-focus-ring)]",
           className,
         )}
       >

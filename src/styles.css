@@ -63,10 +63,14 @@ body {
   line-break: strict;
 }
 
-/* Keyboard focus: a light blue ring of 4px around the part. */
-:focus-visible {
-  outline: 4px solid var(--theme-focus-ring);
-  outline-offset: 0;
+/* Keyboard focus: a light blue ring of 4px around the part. In the base layer, so that a
+   part that shows its focus in its own way, such as an item of a menu on its highlight,
+   turns the ring off with outline-none. */
+@layer base {
+  :focus-visible {
+    outline: 4px solid var(--theme-focus-ring);
+    outline-offset: 0;
+  }
 }
 
 /* Decoration stops for people who ask for less motion. */
