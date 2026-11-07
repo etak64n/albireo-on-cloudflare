@@ -49,10 +49,16 @@ export function albireoAppearance(appearance: AppearanceSettings): Plugin {
 
 // The icon of the browser tab: the logo of the light theme, and the logo of the dark theme
 // while the browser is in dark mode, since a dark tab hides a dark logo. An icon is an
-// image, which loads nothing from outside, so both logos go inside it as data.
+// image, which loads nothing from outside, so both logos go inside it as data. A tab draws
+// the icon at 16 pixels, where a logo with room around its mark looks small beside the
+// icons of other sites, so the icon shows the middle of the logo, FAVICON_ZOOM times as large.
+const FAVICON_ZOOM = 1.3;
+
 function faviconOf(lightLogo: string, darkLogo: string): string {
+  const size = 64 * FAVICON_ZOOM;
+  const offset = (64 - size) / 2;
   const logo = (path: string, mode: string) =>
-    `<image class="${mode}" width="64" height="64" href="data:image/svg+xml;base64,${readFileSync(path).toString("base64")}"/>`;
+    `<image class="${mode}" x="${offset}" y="${offset}" width="${size}" height="${size}" href="data:image/svg+xml;base64,${readFileSync(path).toString("base64")}"/>`;
   const svg =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
     "<style>.dark{display:none}@media (prefers-color-scheme: dark){.light{display:none}.dark{display:inline}}</style>" +
