@@ -28,6 +28,7 @@ import {
   type Me,
   type MeResponse,
   type RatingResponse,
+  type RandomVideosResponse,
   type RecommendationsResponse,
   type SearchResponse,
   type SeriesDetail,
@@ -93,6 +94,8 @@ const ROUTES = [
   route("GET", "/api/users/:id", ({ ids: [id = ""] }) => ({ user: profile(findPerson(id)) }) satisfies UserResponse),
   route("GET", "/api/history", ({ query }) => history(query.get("cursor"))),
   route("GET", "/api/recommendations", () => ({ videos: recommend().map(summary) }) satisfies RecommendationsResponse),
+  // Before /api/videos/:id, which would take "random" for an ID.
+  route("GET", "/api/videos/random", () => ({ videos: randomPicks().map(summary) }) satisfies RandomVideosResponse),
   route("POST", "/api/videos/:id/watched", ({ ids: [id = ""] }) => recordWatch(id)),
   route("GET", "/api/videos", ({ query }) => listVideos(query.get("uploader"), query.get("cursor"), query.get("sort") ?? "newest")),
   route("GET", "/api/videos/:id", ({ ids: [id = ""] }) => ({ video: detail(findVideo(id)) }) satisfies VideoResponse),
@@ -351,6 +354,18 @@ function recordWatch(id: string): undefined {
  * watch, those of familiar series and uploaders first, then the videos that they watched,
  * from the one watched longest ago.
  */
+/** A page of videos at random, as the Worker picks them for Home between its recommendations. */
+function randomPicks(): DemoVideo[] {
+  const videos = [...library.videos];
+  for (let index = videos.length - 1; index > 0; index -= 1) {
+    const other = Math.floor(Math.random() * (index + 1));
+    const video = videos[index] as DemoVideo;
+    videos[index] = videos[other] as DemoVideo;
+    videos[other] = video;
+  }
+  return videos.slice(0, LIST_PAGE_SIZE);
+}
+
 function recommend(): DemoVideo[] {
   const seen = watched().map((entry) => entry.video);
   const watchedIds = new Set(seen.map((video) => video.id));

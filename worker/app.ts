@@ -43,6 +43,7 @@ import {
   type MeResponse,
   type PartUrlsResponse,
   type RatingResponse,
+  type RandomVideosResponse,
   type RecommendationsResponse,
   type SearchResponse,
   type StartAttachmentResponse,
@@ -83,6 +84,7 @@ import {
   readString,
   type JsonObject,
 } from "./http.ts";
+import { randomId } from "./ids.ts";
 import { errorFields, log } from "./log.ts";
 import { RatingRepository } from "./ratings.ts";
 import { ConfigurationError, readRuntimeConfig, type RuntimeConfig } from "./runtime-config.ts";
@@ -325,6 +327,14 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
     const picks = (await recommend(videos, recent, history)).slice(0, LIST_PAGE_SIZE);
     const objectStore = store(c.get("config"));
     return c.json<RecommendationsResponse>({ videos: await Promise.all(picks.map((video) => toSummary(video, objectStore))) });
+  });
+
+  // Videos at random from the whole library, for Home between its recommendations
+  // (src/pages/HomePage.tsx). It reads about one page of videos.
+  app.get("/api/videos/random", async (c) => {
+    const picks = shuffled(await new VideoRepository(c.env.DB).sampleReady(LIST_PAGE_SIZE, randomId()));
+    const objectStore = store(c.get("config"));
+    return c.json<RandomVideosResponse>({ videos: await Promise.all(picks.map((video) => toSummary(video, objectStore))) });
   });
 
   // The player calls this when playback starts, so the video moves to the front of the history.
@@ -805,6 +815,18 @@ async function recommend(videos: VideoRepository, recent: VideoRecord[], history
     .forEach(({ video }) => take(video));
 
   [...history].reverse().forEach(take);
+  return result;
+}
+
+/** The items in a random order. */
+function shuffled<T>(items: readonly T[]): T[] {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const other = (crypto.getRandomValues(new Uint32Array(1))[0] ?? 0) % (index + 1);
+    const item = result[index] as T;
+    result[index] = result[other] as T;
+    result[other] = item;
+  }
   return result;
 }
 

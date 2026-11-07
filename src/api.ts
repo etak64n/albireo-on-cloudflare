@@ -19,6 +19,7 @@ import type {
   PartUrlsResponse,
   RateVideoRequest,
   RatingResponse,
+  RandomVideosResponse,
   RecommendationsResponse,
   SearchResponse,
   StartAttachmentRequest,
@@ -109,6 +110,8 @@ export const api = {
     return request<ListVideosResponse>(search === "" ? "/api/videos" : `/api/videos?${search}`, "GET");
   },
   getRecommendations: () => request<RecommendationsResponse>("/api/recommendations", "GET"),
+  /** A page of videos at random from the whole library. */
+  getRandomVideos: () => request<RandomVideosResponse>("/api/videos/random", "GET"),
   getVideo: (id: string) => request<VideoResponse>(`/api/videos/${id}`, "GET"),
   updateVideo: (id: string, changes: UpdateVideoRequest) => request<VideoResponse>(`/api/videos/${id}`, "PATCH", changes),
   search: (query: string, cursor: string | null) => {

@@ -85,6 +85,7 @@ const en = {
   },
   home: {
     recommended: "Recommended",
+    random: "Random",
     play: "Play",
   },
   sort: {
@@ -273,6 +274,7 @@ const ja: Messages = {
   },
   home: {
     recommended: "おすすめ",
+    random: "ランダム",
     play: "再生",
   },
   sort: {

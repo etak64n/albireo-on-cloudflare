@@ -127,6 +127,11 @@ export interface RecommendationsResponse {
   videos: VideoSummary[];
 }
 
+/** Videos picked at random from the whole library, in a random order. */
+export interface RandomVideosResponse {
+  videos: VideoSummary[];
+}
+
 export interface HistoryResponse {
   videos: WatchedVideo[];
   /** Pass this as the cursor query parameter to get the next page, or null on the last page. */

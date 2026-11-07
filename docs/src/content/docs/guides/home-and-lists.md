@@ -9,12 +9,17 @@ albireo has three lists of videos.
 2. All videos
 3. History
 
-Home (`/`) recommends videos to the person who signed in. The first video shows large, and the rest follow below it.
+Home (`/`) shows up to 48 videos: the first one large, and the rest below it (src/pages/HomePage.tsx).
+On the first visit in 15 minutes, it shows the recommendations for the person who signed in. On the visits between, it shows videos at random from the whole library.
+The browser keeps the time of the last recommendations, so each browser counts its own 15 minutes, and D1 keeps nothing for it.
+
 The recommendations come from the newest 100 videos and the last 100 videos that the person watched, in this order, up to 48 videos (worker/app.ts, `recommend`).
 
 1. In each series that the person is watching, the next episode that they have not watched, from the series watched last, for up to 8 series
 2. The videos that they have not watched: first those of the series and the uploaders that they watched before, then the rest from the newest
 3. The videos that they watched, from the one watched longest ago
+
+The random videos start at a random place among the IDs of the videos, which are random, and take the next ready videos in the order of their IDs, then shuffle them. A visit reads about 48 rows of D1 (worker/videos.ts, `sampleReady`).
 
 All videos (`/videos`) lists every video, 48 per page, in the order that you choose: from the newest, from the oldest, or from the highest rated (worker/videos.ts, shared/api.ts).
 The highest rated come by their average stars, with more ratings first among equal averages, and the videos that nobody rated come last.

@@ -205,6 +205,23 @@ export class VideoRepository {
     return results.map(toRecord);
   }
 
+  /**
+   * Picks ready videos at random. The IDs are random, so the videos from a random place among
+   * them, in the order of their IDs, are a random pick; past the last ID, the pick goes on from
+   * the first. The index videos_status_id holds this order, so it reads about one row a video.
+   */
+  async sampleReady(limit: number, start: string): Promise<VideoRecord[]> {
+    const pick = async (condition: string, count: number) => {
+      const { results } = await this.#db
+        .prepare(`${SELECT} WHERE v.status = 'ready' AND ${condition} ORDER BY v.id LIMIT ?`)
+        .bind(start, count)
+        .all<VideoRow>();
+      return results.map(toRecord);
+    };
+    const after = await pick("v.id >= ?", limit);
+    return after.length === limit ? after : [...after, ...(await pick("v.id < ?", limit - after.length))];
+  }
+
   /** Records that a person watched a video now. A video appears once in a history, at its last time. */
   async recordWatch(userId: string, videoId: string, now: string): Promise<void> {
     await this.#db

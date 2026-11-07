@@ -63,7 +63,7 @@ The browser app builds on these libraries (package.json).
 - react-pdf, @extend-ai/react-pptx, and react-markdown for the previews of attachments
 
 D1 is Cloudflare's serverless SQLite database.
-albireo keeps these tables in D1 (migrations/0001_create_videos.sql to migrations/0010_video_ratings.sql).
+albireo keeps these tables in D1 (migrations/0001_create_videos.sql to migrations/0011_random_videos.sql).
 
 - videos: one row per video, with its title, description, size, duration, resolution, thumbnail, uploader, series, and upload state, and the number and the average of its ratings, which the list of all videos sorts by
 - users: one row per person, with the email, the display name, the bio, the picture, and the language of the app

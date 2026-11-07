@@ -15,21 +15,57 @@ import { usePageTitle } from "../lib/title.ts";
 import { Link } from "../router.tsx";
 import { useUploads } from "../uploads.tsx";
 
-/** Videos recommended to the signed-in person: the first one large, then the rest. */
+// Home shows the recommendations on the first visit in this long, as this browser recorded
+// it, and videos at random from the whole library on the visits between.
+const RECOMMENDATIONS_EVERY_MS = 15 * 60 * 1000;
+const RECOMMENDED_AT = "albireo.home.recommendedAt";
+
+type HomeMode = "recommended" | "random";
+
+/** The recommendations, unless this browser showed them within RECOMMENDATIONS_EVERY_MS. */
+function modeOfVisit(now: number): HomeMode {
+  try {
+    const last = Number(window.localStorage.getItem(RECOMMENDED_AT));
+    return last > 0 && now - last < RECOMMENDATIONS_EVERY_MS ? "random" : "recommended";
+  } catch {
+    // A browser that keeps no storage gets the recommendations on every visit.
+    return "recommended";
+  }
+}
+
+function rememberRecommendations(now: number): void {
+  try {
+    window.localStorage.setItem(RECOMMENDED_AT, String(now));
+  } catch {
+    // Without storage, every visit is a first one.
+  }
+}
+
+/**
+ * The videos of Home, the first one large, then the rest: the recommendations for the
+ * signed-in person on the first visit in a while, and videos at random on the visits between.
+ */
 export function HomePage() {
   const [videos, setVideos] = useState<VideoSummary[] | null>(null);
   const [error, setError] = useState("");
   const { completed } = useUploads();
+  // Decided once for the visit, so a list that loads again after an upload keeps its kind.
+  const [mode] = useState(() => modeOfVisit(Date.now()));
   const t = useT();
   usePageTitle(null);
 
   const load = useCallback(async () => {
     try {
-      setVideos((await api.getRecommendations()).videos);
+      if (mode === "recommended") {
+        setVideos((await api.getRecommendations()).videos);
+        rememberRecommendations(Date.now());
+      } else {
+        setVideos((await api.getRandomVideos()).videos);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
-  }, []);
+  }, [mode]);
 
   // The list loads again when an upload finishes, so the new video shows up.
   useEffect(() => {
@@ -54,7 +90,7 @@ export function HomePage() {
           <>
             <Feature video={first} />
             {rest.length > 0 && (
-              <Section title={t.home.recommended}>
+              <Section title={mode === "recommended" ? t.home.recommended : t.home.random}>
                 <VideoGrid videos={rest} />
               </Section>
             )}
@@ -80,7 +116,7 @@ function FeatureSkeleton() {
 /** The picture of the first video takes two thirds of a wide page, and the title the rest. */
 const FEATURE_CLASS = "-m-3 grid gap-x-8 gap-y-4 rounded-lg p-3 @3xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]";
 
-/** The video recommended first, large: its picture, and beside it the title and the way to play it. */
+/** The first video of Home, large: its picture, and beside it the title and the way to play it. */
 function Feature({ video }: { video: VideoSummary }) {
   const t = useT();
   const byline = [video.uploader?.displayName, formatDate(video.createdAt)].filter((part) => part !== undefined && part !== "").join(" · ");

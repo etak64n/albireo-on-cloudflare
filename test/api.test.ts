@@ -12,6 +12,7 @@ import type {
   ListVideosResponse,
   MeResponse,
   PartUrlsResponse,
+  RandomVideosResponse,
   RatingResponse,
   RecommendationsResponse,
   SearchResponse,
@@ -750,6 +751,24 @@ describe("series", () => {
     const app = await createTestApp();
     const { series } = await createSeries(app, "Retros", OTHER_EMAIL);
     expect((await app.requestAs(ADMIN_EMAIL, `/api/series/${series.id}`, { method: "DELETE" })).status).toBe(204);
+  });
+});
+
+describe("random videos", () => {
+  it("picks every ready video of a small library once, and no upload in progress", async () => {
+    const app = await createTestApp();
+    for (const title of ["A", "B", "C"]) await uploadVideo(app, title, MIB);
+    await startUpload(app, "Still uploading", MIB);
+    const { videos } = await body<RandomVideosResponse>(await app.signedRequest("/api/videos/random"));
+    expect(videos.map((video) => video.title).sort()).toEqual(["A", "B", "C"]);
+  });
+
+  it("picks a page of different videos from a larger library", async () => {
+    const app = await createTestApp();
+    for (let number = 1; number <= 50; number += 1) await uploadVideo(app, `Video ${number}`, MIB);
+    const { videos } = await body<RandomVideosResponse>(await app.signedRequest("/api/videos/random"));
+    expect(videos).toHaveLength(48);
+    expect(new Set(videos.map((video) => video.id)).size).toBe(48);
   });
 });
 
