@@ -1,11 +1,12 @@
-// Short messages that confirm what someone just did, such as an upload that finished, in the
-// way of shadcn/ui, on Radix UI. They stack in the lower right corner, or along the bottom of a
-// narrow screen, go after 5 seconds unless the pointer is over them, and screen readers read
-// them out. A message can carry a link, such as Open on the video that an upload made.
+// Short messages that confirm what someone just did, such as an upload that finished. They
+// stack in the lower right corner, or along the bottom of a narrow screen, and go after 5
+// seconds, but stay while the pointer is over one or the focus is in one. Screen readers read
+// each one out from a status region. A message can carry a link, such as Open on the video
+// that an upload made. The messages take no part in the keyboard of dialogs: Escape closes
+// the dialog that is open, not a message.
 
 import { X } from "lucide-react";
-import { Toast as ToastPrimitive } from "radix-ui";
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useT } from "../../i18n.ts";
 import { Link } from "../../router.tsx";
 
@@ -38,39 +39,58 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const item = { id: nextId.current, message, link };
     setItems((current) => [...current.slice(-(MAX_TOASTS - 1)), item]);
   }, []);
+  const dismiss = useCallback((id: number) => setItems((current) => current.filter((item) => item.id !== id)), []);
 
   return (
     <ToastContext.Provider value={show}>
-      <ToastPrimitive.Provider duration={DURATION_MS} label={t.toast.notifications}>
-        {children}
+      {children}
+      {/* The region stays on the page, so a screen reader hears each message that joins it. Above the dialogs, so a message that a dialog causes is not under its backdrop. */}
+      <div
+        role="status"
+        aria-label={t.toast.notifications}
+        className="pointer-events-none fixed right-4 bottom-4 z-[60] grid w-96 max-w-[calc(100vw-2rem)] gap-2 max-sm:left-4 max-sm:w-auto"
+      >
         {items.map((item) => (
-          <ToastPrimitive.Root
-            key={item.id}
-            onOpenChange={(open) => {
-              if (!open) setItems((current) => current.filter((other) => other.id !== item.id));
-            }}
-            className="flex items-center gap-3 rounded-lg border border-border bg-surface py-2 pr-2 pl-4 text-sm text-strong shadow-popover data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-2 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[swipe=cancel]:translate-x-0 data-[swipe=end]:animate-out data-[swipe=end]:fade-out-0 data-[swipe=move]:translate-x-(--radix-toast-swipe-move-x)"
-          >
-            <ToastPrimitive.Description className="min-w-0 flex-1 break-words">{item.message}</ToastPrimitive.Description>
-            {item.link !== undefined && (
-              <ToastPrimitive.Action asChild altText={item.link.label}>
-                <Link to={item.link.to} className="shrink-0 rounded-xs font-semibold text-accent hover:underline">
-                  {item.link.label}
-                </Link>
-              </ToastPrimitive.Action>
-            )}
-            <ToastPrimitive.Close
-              aria-label={t.toast.close}
-              className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-sm text-subdued transition-colors duration-150 hover:bg-surface-hover hover:text-strong pointer-coarse:size-11 [&_svg]:size-4"
-            >
-              <X aria-hidden="true" />
-            </ToastPrimitive.Close>
-          </ToastPrimitive.Root>
+          <Toast key={item.id} item={item} onDismiss={dismiss} />
         ))}
-        {/* Above the dialogs, so a message that a dialog causes is not under its backdrop. */}
-        <ToastPrimitive.Viewport className="fixed right-4 bottom-4 z-[60] m-0 grid w-96 max-w-[calc(100vw-2rem)] list-none gap-2 p-0 outline-none max-sm:left-4 max-sm:w-auto" />
-      </ToastPrimitive.Provider>
+      </div>
     </ToastContext.Provider>
+  );
+}
+
+function Toast({ item, onDismiss }: { item: ToastItem; onDismiss: (id: number) => void }) {
+  const t = useT();
+  const [held, setHeld] = useState(false);
+
+  useEffect(() => {
+    if (held) return;
+    const timer = window.setTimeout(() => onDismiss(item.id), DURATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [held, item.id, onDismiss]);
+
+  return (
+    <div
+      onPointerEnter={() => setHeld(true)}
+      onPointerLeave={() => setHeld(false)}
+      onFocus={() => setHeld(true)}
+      onBlur={() => setHeld(false)}
+      className="pointer-events-auto flex animate-in items-center gap-3 rounded-lg border border-border bg-surface py-2 pr-2 pl-4 text-sm text-strong shadow-popover fade-in-0 slide-in-from-bottom-2"
+    >
+      <p className="min-w-0 flex-1 break-words">{item.message}</p>
+      {item.link !== undefined && (
+        <Link to={item.link.to} onClick={() => onDismiss(item.id)} className="shrink-0 rounded-xs font-semibold text-accent hover:underline">
+          {item.link.label}
+        </Link>
+      )}
+      <button
+        type="button"
+        aria-label={t.toast.close}
+        onClick={() => onDismiss(item.id)}
+        className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-sm text-subdued transition-colors duration-150 hover:bg-surface-hover hover:text-strong pointer-coarse:size-11 [&_svg]:size-4"
+      >
+        <X aria-hidden="true" />
+      </button>
+    </div>
   );
 }
 
