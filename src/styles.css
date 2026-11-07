@@ -115,6 +115,13 @@ body {
   aspect-ratio: 16 / 9;
 }
 
+/* The skin draws a thin white line around the player. Where the rounded corners cut a
+   light picture, its edge shows through the shade of the controls, and the white line
+   makes it a light line along the bottom. A dark line hides it. */
+.albireo-player.media-skin::after {
+  border-color: rgb(0 0 0 / 0.5);
+}
+
 /* Markdown previews in the theme. Headings stand out by size and weight only. */
 @layer components {
   .markdown {
