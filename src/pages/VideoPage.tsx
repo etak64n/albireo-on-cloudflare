@@ -9,7 +9,7 @@ import { Breadcrumb, DetailList, Section } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { StarRating } from "../components/StarRating.tsx";
 import { Thumbnail } from "../components/Thumbnail.tsx";
-import { VideoEditForm } from "../components/VideoEditForm.tsx";
+import { VideoTitle } from "../components/VideoEditForm.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 import { useT } from "../i18n.ts";
 import { formatDate, formatDuration } from "../lib/format.ts";
@@ -130,7 +130,7 @@ export function VideoPage({ id }: { id: string }) {
                   <VideoPlayer video={video} videoRef={player} autoPlay={autoPlay} onEnded={playNext} />
                 </Suspense>
               </div>
-              <VideoEditForm video={video} onSaved={setVideo} />
+              <VideoTitle video={video} />
             </div>
             <div className="@4xl:hidden">
               <VideoAside video={video} episodes={episodes} onChange={setVideo} layout="row" />

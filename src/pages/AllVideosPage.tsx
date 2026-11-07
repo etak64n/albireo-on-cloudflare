@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { isVideoSort, VIDEO_SORTS, type VideoSort, type VideoSummary } from "../../shared/api.ts";
 import { api } from "../api.ts";
 import { EmptyLibrary } from "../components/EmptyLibrary.tsx";
+import { LoadMore } from "../components/LoadMore.tsx";
 import { PageHeader } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
-import { Button } from "../components/ui/button.tsx";
 import { VideoGrid, VideoGridSkeleton } from "../components/VideoGrid.tsx";
 import { useT } from "../i18n.ts";
 import { usePageTitle } from "../lib/title.ts";
@@ -84,13 +84,7 @@ export function AllVideosPage() {
       {videos !== null && videos.length > 0 && (
         <div className="grid gap-4">
           <VideoGrid videos={videos} />
-          {nextCursor !== null && (
-            <div className="pt-4 text-center">
-              <Button onClick={() => void loadMore()} disabled={loadingMore}>
-                {loadingMore ? t.common.loadingMore : t.common.loadMore}
-              </Button>
-            </div>
-          )}
+          {nextCursor !== null && <LoadMore loading={loadingMore} onLoad={loadMore} />}
         </div>
       )}
     </Shell>

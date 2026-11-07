@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import type { WatchedVideo } from "../../shared/api.ts";
 import { api } from "../api.ts";
+import { LoadMore } from "../components/LoadMore.tsx";
 import { PageHeader } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { VideoGrid, VideoGridSkeleton } from "../components/VideoGrid.tsx";
 import { useT } from "../i18n.ts";
 import { usePageTitle } from "../lib/title.ts";
-import { Button } from "../components/ui/button.tsx";
 
 /** The videos that the signed-in person watched, from the last watched. */
 export function HistoryPage() {
@@ -45,13 +45,7 @@ export function HistoryPage() {
       {videos !== null && (
         <section className="grid gap-4">
           <VideoGrid videos={videos} />
-          {nextCursor !== null && (
-            <div className="pt-4 text-center">
-              <Button onClick={() => void loadMore()} disabled={loadingMore}>
-                {loadingMore ? t.common.loadingMore : t.common.loadMore}
-              </Button>
-            </div>
-          )}
+          {nextCursor !== null && <LoadMore loading={loadingMore} onLoad={loadMore} />}
         </section>
       )}
     </Shell>

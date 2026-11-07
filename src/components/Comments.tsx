@@ -9,6 +9,7 @@ import { Link } from "../router.tsx";
 import { useSession } from "../session.tsx";
 import { Avatar } from "./Avatar.tsx";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
+import { LoadMore } from "./LoadMore.tsx";
 import { Section } from "./Page.tsx";
 import { Button } from "./ui/button.tsx";
 import { Textarea } from "./ui/field.tsx";
@@ -76,13 +77,7 @@ export function Comments({
           ))}
         </ul>
       )}
-      {nextCursor !== null && (
-        <div className="pt-2 text-center">
-          <Button onClick={() => void loadMore()} disabled={loadingMore}>
-            {loadingMore ? t.common.loadingMore : t.common.loadMore}
-          </Button>
-        </div>
-      )}
+      {nextCursor !== null && <LoadMore loading={loadingMore} onLoad={loadMore} />}
       <ConfirmDialog
         open={deleting !== null}
         title={t.comments.deleteQuestion}

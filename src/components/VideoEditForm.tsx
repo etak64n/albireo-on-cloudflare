@@ -1,47 +1,37 @@
+import { Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH, type SeriesSummary, type UpdateVideoRequest, type VideoDetail } from "../../shared/api.ts";
 import { api } from "../api.ts";
 import { useT } from "../i18n.ts";
-import { Button } from "./ui/button.tsx";
+import { cn } from "../lib/utils.ts";
+import { Link } from "../router.tsx";
+import { Button, buttonVariants } from "./ui/button.tsx";
 import { Input, Label, Textarea } from "./ui/field.tsx";
 
 /**
- * The title and the description of a video, and the form that edits them with the
- * series. Only the uploader of the video and admins see the Edit button.
+ * The title and the description of a video on its page. For the uploader of the video and
+ * admins, a small pencil beside the title opens the edit page of the video.
  */
-export function VideoEditForm({ video, onSaved }: { video: VideoDetail; onSaved: (video: VideoDetail) => void }) {
-  const [editing, setEditing] = useState(false);
+export function VideoTitle({ video }: { video: VideoDetail }) {
   const t = useT();
-
-  if (!editing) {
-    return (
-      <header className="grid gap-4">
-        <div className="flex items-start justify-between gap-3">
-          <h1 className="min-w-0 text-display font-bold break-words text-strong">{video.title}</h1>
-          {video.canEdit && (
-            <Button className="mt-1" onClick={() => setEditing(true)}>
-              {t.common.edit}
-            </Button>
-          )}
-        </div>
-        {video.description && <p className="max-w-[75ch] text-sm leading-relaxed break-words whitespace-pre-wrap">{video.description}</p>}
-      </header>
-    );
-  }
-
   return (
-    <EditForm
-      video={video}
-      onSaved={(saved) => {
-        onSaved(saved);
-        setEditing(false);
-      }}
-      onCancel={() => setEditing(false)}
-    />
+    <header className="grid gap-4">
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="min-w-0 text-display font-bold break-words text-strong">{video.title}</h1>
+        {video.canEdit && (
+          <Link to={`/videos/${video.id}/edit`} className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "mt-1 shrink-0 text-subdued")}>
+            <Pencil aria-hidden="true" />
+            <span className="sr-only">{t.common.edit}</span>
+          </Link>
+        )}
+      </div>
+      {video.description && <p className="max-w-[75ch] text-sm leading-relaxed break-words whitespace-pre-wrap">{video.description}</p>}
+    </header>
   );
 }
 
-function EditForm({
+/** The form of the edit page that changes the title, the description, and the series of a video. */
+export function VideoEditForm({
   video,
   onSaved,
   onCancel,

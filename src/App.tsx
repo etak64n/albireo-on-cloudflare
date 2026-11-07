@@ -10,6 +10,7 @@ import { SearchPage } from "./pages/SearchPage.tsx";
 import { SeriesPage } from "./pages/SeriesPage.tsx";
 import { UploadPage } from "./pages/UploadPage.tsx";
 import { UserPage } from "./pages/UserPage.tsx";
+import { VideoEditPage } from "./pages/VideoEditPage.tsx";
 import { VideoPage } from "./pages/VideoPage.tsx";
 import { usePathname, useRoute } from "./router.tsx";
 import { SessionProvider } from "./session.tsx";
@@ -50,6 +51,8 @@ function Page() {
       return <AccountPage />;
     case "video":
       return <VideoPage key={route.id} id={route.id} />;
+    case "video-edit":
+      return <VideoEditPage key={route.id} id={route.id} />;
     case "series":
       return <SeriesPage key={route.id} id={route.id} />;
     case "user":

@@ -18,7 +18,6 @@ const en = {
     delete: "Delete",
     /** For screen readers while a part of the page loads. */
     loading: "Loading",
-    loadMore: "Load more",
     loadingMore: "Loading...",
     title: "Title",
     description: "Description",
@@ -110,6 +109,7 @@ const en = {
     episode: (episode: number) => `Episode ${episode}`,
     episodeOf: (episode: number, count: number) => `Episode ${episode} of ${count}`,
     noSeries: "No series",
+    editVideo: "Edit video",
   },
   rating: {
     yourRating: "Your rating",
@@ -206,7 +206,6 @@ const ja: Messages = {
     remove: "削除",
     delete: "削除",
     loading: "読み込み中",
-    loadMore: "さらに表示",
     loadingMore: "読み込み中…",
     title: "タイトル",
     description: "説明",
@@ -298,6 +297,7 @@ const ja: Messages = {
     episode: (episode) => `第 ${episode} 回`,
     episodeOf: (episode, count) => `第 ${episode} 回（全 ${count} 回）`,
     noSeries: "シリーズなし",
+    editVideo: "動画を編集",
   },
   rating: {
     yourRating: "あなたの評価",

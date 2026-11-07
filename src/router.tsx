@@ -12,6 +12,7 @@ export type Route =
   | { name: "channel-settings" }
   | { name: "account" }
   | { name: "video"; id: string }
+  | { name: "video-edit"; id: string }
   | { name: "series"; id: string }
   | { name: "user"; id: string }
   | { name: "not-found" };
@@ -32,6 +33,8 @@ export function matchRoute(pathname: string): Route {
   if (pathname === "/upload") return { name: "upload" };
   if (pathname === "/settings/channel") return { name: "channel-settings" };
   if (pathname === "/settings/account") return { name: "account" };
+  const edit = /^\/videos\/([^/]+)\/edit$/.exec(pathname)?.[1];
+  if (edit !== undefined && ID_PATTERN.test(edit)) return { name: "video-edit", id: edit };
   const match = /^\/(videos|series|users)\/([^/]+)$/.exec(pathname);
   const page = match?.[1] as keyof typeof PAGES | undefined;
   const id = match?.[2];

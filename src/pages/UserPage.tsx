@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { SeriesSummary, UserProfile, VideoSummary } from "../../shared/api.ts";
 import { ApiError, api } from "../api.ts";
 import { Avatar } from "../components/Avatar.tsx";
+import { LoadMore } from "../components/LoadMore.tsx";
 import { Section } from "../components/Page.tsx";
 import { SeriesGrid } from "../components/SeriesGrid.tsx";
 import { Shell } from "../components/Shell.tsx";
@@ -98,13 +99,7 @@ export function UserPage({ id }: { id: string }) {
           {videos.length > 0 && (
             <Section title={t.common.videos}>
               <VideoGrid videos={videos} />
-              {nextCursor !== null && (
-                <div className="pt-4 text-center">
-                  <Button onClick={() => void loadMore()} disabled={loadingMore}>
-                    {loadingMore ? t.common.loadingMore : t.common.loadMore}
-                  </Button>
-                </div>
-              )}
+              {nextCursor !== null && <LoadMore loading={loadingMore} onLoad={loadMore} />}
             </Section>
           )}
         </>
