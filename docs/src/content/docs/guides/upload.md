@@ -3,7 +3,7 @@ title: "Upload"
 description: "How videos go up, straight from the browser to the bucket."
 ---
 
-Upload in the header opens the upload page (src/pages/UploadPage.tsx).
+Upload in the sidebar opens the upload page (src/pages/UploadPage.tsx).
 There you choose the series that the videos join, or none, and then drop video files on the page or choose them with Choose files.
 The menu of series lists the series from the one updated last. With more than 10 series, it has a search field at its top (src/components/ui/select.tsx).
 The Upload button on the page of a series opens the upload page with that series chosen.

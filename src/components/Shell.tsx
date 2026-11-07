@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, History, House, KeyRound, Layers, LayoutGrid, LogOut, Menu as MenuIcon, Plus, Search, Settings, UserRound, X } from "lucide-react";
+import { ChevronDown, ChevronUp, History, House, KeyRound, Layers, LayoutGrid, LogOut, Menu as MenuIcon, Plus, Search, Settings, Upload, UserRound, X } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import appearance from "virtual:albireo-appearance";
 import { SEARCH_QUERY_MAX_LENGTH, TITLE_MAX_LENGTH } from "../../shared/api.ts";
@@ -14,14 +14,14 @@ import { Button } from "./ui/button.tsx";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "./ui/dropdown-menu.tsx";
 import { Input } from "./ui/field.tsx";
 import { Sheet, SheetClose, SheetContent } from "./ui/sheet.tsx";
-import { DropOverlay, UploadButton, UploadPanel } from "./VideoUpload.tsx";
+import { DropOverlay, UploadPanel } from "./VideoUpload.tsx";
 
 /**
- * The frame of every page: the sidebar of the library on the left, the bar on top with
- * the search, the upload button, and the account, and the page under the bar. On
- * narrow screens the sidebar hides, and the menu button in the bar slides it in from
- * the left. The upload button in the bar opens the upload page. Videos dropped on any page
- * join the upload queue, and on the page of a series they join that series.
+ * The frame of every page: the sidebar of the library on the left, with the upload page
+ * among its pages, the bar on top with the search and the account, and the page under the
+ * bar. On narrow screens the sidebar hides, and the menu button in the bar slides it in from
+ * the left. Videos dropped on any page join the upload queue, and on the page of a series
+ * they join that series.
  */
 export function Shell({
   children,
@@ -79,8 +79,6 @@ export function Shell({
             </Link>
             <SearchBox />
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              {/* On the page of a series, the upload page opens with that series chosen. */}
-              <UploadButton seriesId={seriesId ?? undefined} />
               <AccountMenu />
             </div>
           </div>
@@ -240,6 +238,9 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
         </NavLink>
         <NavLink to="/history" current={pathname === "/history"} icon={<History />}>
           {t.shell.history}
+        </NavLink>
+        <NavLink to="/upload" current={pathname === "/upload"} icon={<Upload />}>
+          {t.upload.upload}
         </NavLink>
       </nav>
       <div className="grid gap-1">

@@ -17,8 +17,8 @@ export function uploadPath(seriesId?: string): string {
 }
 
 /**
- * Opens the upload page. With a series, the page chooses that series for the videos. In
- * the top bar, it narrows to its icon on small screens. Prominent, it is the primary
+ * Opens the upload page. With a series, the page chooses that series for the videos. Beside
+ * the title of a series, it narrows to its icon on small screens. Prominent, it is the primary
  * button with its label at every size.
  */
 export function UploadButton({ prominent = false, seriesId }: { prominent?: boolean; seriesId?: string }) {
@@ -32,7 +32,7 @@ export function UploadButton({ prominent = false, seriesId }: { prominent?: bool
     >
       <Link to={uploadPath(seriesId)}>
         <Upload aria-hidden="true" />
-        {/* On small screens the label leaves the bar but stays the name of the link. */}
+        {/* On small screens the label leaves the button but stays the name of the link. */}
         <span className={prominent ? undefined : "max-md:sr-only"}>{t.upload.upload}</span>
       </Link>
     </Button>
