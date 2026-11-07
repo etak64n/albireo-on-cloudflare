@@ -5,7 +5,7 @@ import { api } from "../api.ts";
 import { useT } from "../i18n.ts";
 import { previewKindOf, type PreviewKind } from "../lib/attachments.ts";
 import { formatBytes } from "../lib/format.ts";
-import { put } from "../lib/upload.ts";
+import { putAgainWhileBusy } from "../lib/upload.ts";
 import { AttachmentPreview } from "./AttachmentPreview.tsx";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { DownloadButton } from "./DownloadButton.tsx";
@@ -35,7 +35,7 @@ export function Attachments({ video, onChange }: { video: VideoDetail; onChange:
     setUploading({ fileName: file.name, percent: 0 });
     try {
       const started = await api.startAttachment(video.id, { fileName: file.name, fileSize: file.size });
-      await put(started.url, file, started.contentType, new AbortController().signal, (bytes) =>
+      await putAgainWhileBusy(started.url, file, started.contentType, (bytes) =>
         setUploading({ fileName: file.name, percent: file.size === 0 ? 100 : Math.floor((bytes / file.size) * 100) }),
       );
       const { attachment } = await api.commitAttachment(started.attachmentId);

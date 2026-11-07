@@ -5,6 +5,7 @@
 // asks the Worker to complete the upload with the ETag of every part.
 
 import type { CreateUploadResponse, VideoDetail } from "../../shared/api.ts";
+import { isPassingStatus, retry } from "../../shared/retry.ts";
 import { api } from "../api.ts";
 import { currentMessages } from "../i18n.ts";
 import { titleFromFileName } from "./format.ts";
@@ -154,9 +155,32 @@ async function sendPart(
 /** Sends a new thumbnail of a video to the bucket, commits it, and returns the video with it. */
 export async function uploadThumbnail(videoId: string, thumbnail: Blob): Promise<VideoDetail> {
   const { url, contentType } = await api.thumbnailUpload(videoId);
-  await put(url, thumbnail, contentType, new AbortController().signal, () => undefined);
+  await putAgainWhileBusy(url, thumbnail, contentType, () => undefined);
   const { video } = await api.commitThumbnail(videoId);
   return video;
+}
+
+/** A PUT to the bucket that failed: status is 0 when the connection failed, or the status that the bucket answered. */
+export class TransferError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "TransferError";
+    this.status = status;
+  }
+}
+
+/**
+ * Sends a whole file with a PUT, and again after a lost connection or a busy bucket, twice at
+ * most. A PUT of the same file to the same signed URL may run twice without harm. The parts of
+ * a video run again on their own, each with a fresh URL (sendPart).
+ */
+export function putAgainWhileBusy(url: string, body: Blob, contentType: string | null, onBytes: (bytes: number) => void): Promise<string | null> {
+  return retry(() => put(url, body, contentType, new AbortController().signal, onBytes), {
+    attempts: 3,
+    firstDelayMs: 1000,
+    retryable: (error) => error instanceof TransferError && (error.status === 0 || isPassingStatus(error.status)),
+  });
 }
 
 /** Sends a PUT with upload progress and returns the ETag response header. */
@@ -175,9 +199,9 @@ export function put(
     xhr.upload.onprogress = (event) => onBytes(event.loaded);
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.getResponseHeader("ETag"));
-      else reject(new Error(currentMessages().upload.rejected(xhr.status)));
+      else reject(new TransferError(currentMessages().upload.rejected(xhr.status), xhr.status));
     };
-    xhr.onerror = () => reject(new Error(currentMessages().upload.failed));
+    xhr.onerror = () => reject(new TransferError(currentMessages().upload.failed, 0));
     xhr.onabort = () => reject(new DOMException("The upload was canceled.", "AbortError"));
     xhr.onloadend = () => signal.removeEventListener("abort", onAbort);
     if (signal.aborted) {

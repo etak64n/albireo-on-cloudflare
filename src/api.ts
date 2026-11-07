@@ -42,6 +42,7 @@ import type {
   VideoResponse,
   VideoSort,
 } from "../shared/api.ts";
+import { isPassingStatus, retry } from "../shared/retry.ts";
 import { currentMessages } from "./i18n.ts";
 
 export class ApiError extends Error {
@@ -56,6 +57,11 @@ export class ApiError extends Error {
   }
 }
 
+// Reads, and PUTs that put the same thing in the same place, run again after a lost connection
+// or a busy server, twice at most. Other changes run once: a change that reached the API before
+// its answer got lost must not happen twice, such as a comment.
+const RETRIED_METHODS = new Set(["GET", "PUT"]);
+
 async function request<T>(path: string, method: string, body?: unknown): Promise<T> {
   // The demo on GitHub Pages answers from sample data in the browser. The production
   // build drops this branch, and with it the module of the demo.
@@ -63,6 +69,15 @@ async function request<T>(path: string, method: string, body?: unknown): Promise
     const { demoResponse } = await import("./demo/api.ts");
     return (await demoResponse(path, method, body)) as T;
   }
+  if (!RETRIED_METHODS.has(method)) return send<T>(path, method, body);
+  return retry(() => send<T>(path, method, body), {
+    attempts: 3,
+    firstDelayMs: 500,
+    retryable: (error) => error instanceof ApiError && (error.status === 0 || isPassingStatus(error.status)),
+  });
+}
+
+async function send<T>(path: string, method: string, body?: unknown): Promise<T> {
   let response: Response;
   try {
     response = await fetch(path, {

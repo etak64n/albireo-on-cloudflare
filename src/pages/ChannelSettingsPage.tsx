@@ -13,6 +13,7 @@ import { Slider } from "../components/ui/slider.tsx";
 import { useToast } from "../components/ui/toast.tsx";
 import { useT } from "../i18n.ts";
 import { cropToJpeg, type CropArea } from "../lib/image.ts";
+import { putAgainWhileBusy } from "../lib/upload.ts";
 import { usePageTitle } from "../lib/title.ts";
 import { useSession } from "../session.tsx";
 
@@ -60,12 +61,9 @@ export function ChannelSettingsPage() {
       let current = me;
       if (picture.kind === "replace") {
         const signed = await api.avatarUpload();
-        const response = await fetch(signed.url, {
-          method: "PUT",
-          headers: { "content-type": signed.contentType },
-          body: picture.image,
-        }).catch(() => null);
-        if (response === null || !response.ok) throw new Error(t.channel.uploadFailed);
+        await putAgainWhileBusy(signed.url, picture.image, signed.contentType, () => undefined).catch(() => {
+          throw new Error(t.channel.uploadFailed);
+        });
         current = (await api.commitAvatar()).me;
       } else if (picture.kind === "remove") {
         current = (await api.removeAvatar()).me;

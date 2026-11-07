@@ -14,6 +14,7 @@ import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { validateSettings, type AlbireoSettings } from "../config/settings.ts";
+import { isPassingStatus, retry } from "../shared/retry.ts";
 import { S3ObjectStore } from "../worker/storage.ts";
 import { projectCf } from "./cf.ts";
 import { parseEnvFile } from "./env-file.ts";
@@ -83,9 +84,37 @@ async function checkStorageKeys(settings: AlbireoSettings, secrets: StackSecrets
     },
     600,
   );
-  const missing = await missingStoragePermissions(store, (url, init) => fetch(url, init), randomUUID());
+  const missing = await missingStoragePermissions(store, sendAgainWhileBusy, randomUUID());
   if (missing.length > 0) throw new Error(missingPermissionsMessage(storage.bucket, missing));
   console.log(`Bucket ${storage.bucket}: the access key reads, writes, and deletes objects, and uploads videos in parts`);
+}
+
+/**
+ * Sends a request to a signed URL, and again after a lost connection or a busy storage service,
+ * as the storage client of the Worker does. The same PUT or GET may run twice without harm.
+ */
+function sendAgainWhileBusy(url: string, init: RequestInit): Promise<Response> {
+  return retry(
+    async () => {
+      const response = await fetch(url, init);
+      if (isPassingStatus(response.status)) throw new BusyResponse(response);
+      return response;
+    },
+    { attempts: 3, firstDelayMs: 1000, retryable: (error) => error instanceof BusyResponse || error instanceof TypeError },
+  ).catch((error: unknown) => {
+    // After the last attempt, the answer of the storage service names the problem.
+    if (error instanceof BusyResponse) return error.response;
+    throw error;
+  });
+}
+
+/** An answer of the storage service that may pass, such as 503, kept to return after the last attempt. */
+class BusyResponse extends Error {
+  readonly response: Response;
+  constructor(response: Response) {
+    super(`The storage service answered ${response.status}.`);
+    this.response = response;
+  }
 }
 
 async function readSettings(): Promise<AlbireoSettings> {

@@ -150,6 +150,9 @@ pnpm stack:deploy
 4. Deploys the Worker with the keys of `.env.production`, the AUD tag of the Access application, and the ID of the database
 5. Tags each resource with the name of the stack
 
+A cf command that fails in a way that may pass, a lost connection or an answer of 429 or 5xx from Cloudflare, runs again after 2, 4, and 8 seconds, and the deploy prints a line for each new attempt (stack/cf.ts).
+A command that creates a resource looks for the resource before it runs again, since Cloudflare may have made it before its answer failed.
+
 The Access application exists before the Worker serves the domain, so the domain is never served without Access.
 `cf deploy` attaches `production.domain` to the Worker (cloudflare.config.ts, `domains`).
 

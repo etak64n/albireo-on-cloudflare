@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import example from "../albireo.config.example.ts";
 import { validateSettings } from "../config/settings.ts";
-import { CfError, type Cf } from "../stack/cf.ts";
+import { CF_ATTEMPTS, CfError, withRetries, type Cf } from "../stack/cf.ts";
 import { parseEnvFile } from "../stack/env-file.ts";
 import { deleteStack, deployStack, offeredLoginMethods, STACK_TAG, stackResources, type LoginMethod, type StackResource } from "../stack/stack.ts";
 
@@ -20,6 +20,7 @@ const LOGIN_METHODS: LoginMethod[] = [
 class FakeCf implements Cf {
   readonly calls: string[][] = [];
   readonly envs: Record<string, string>[] = [];
+  readonly pauses: number[] = [];
   readonly answer: (args: string[]) => unknown;
 
   constructor(answer: (args: string[]) => unknown) {
@@ -38,6 +39,10 @@ class FakeCf implements Cf {
     this.envs.push(env);
     const answer = this.answer([...args]);
     if (answer instanceof Error) throw answer;
+  }
+
+  pause(ms: number): void {
+    this.pauses.push(ms);
   }
 
   /** The commands that start with these words. */
@@ -60,7 +65,100 @@ function writeSecretsFile(written: Record<string, string>[], removed: string[]) 
   };
 }
 
+const busy = (args: string[]) => new CfError(args, "[777] internal service error\n500 Internal Server Error · HTTP /accounts/x/d1/database");
+
+describe("withRetries", () => {
+  it("runs a command again after a failure that may pass, waiting twice as long each time", () => {
+    const pauses: number[] = [];
+    const lines: string[] = [];
+    let attempts = 0;
+    const result = withRetries(["tags", "account-resources", "update", "--body", "{}"], () => {
+      attempts += 1;
+      if (attempts < 3) throw busy(["tags"]);
+      return "done";
+    }, (ms) => pauses.push(ms), (line) => lines.push(line));
+    expect(result).toBe("done");
+    expect(pauses).toEqual([2000, 4000]);
+    // The line names the command without its options, which may hold settings.
+    expect(lines[0]).toBe("cf tags account-resources update failed with 500. Trying again in 2 seconds (attempt 2 of 4).");
+  });
+
+  it("stops after the last attempt, and at once for a failure that cannot pass", () => {
+    let attempts = 0;
+    expect(() => withRetries(["d1", "list"], () => {
+      attempts += 1;
+      throw busy(["d1", "list"]);
+    }, () => undefined, () => undefined)).toThrow(CfError);
+    expect(attempts).toBe(CF_ATTEMPTS);
+
+    attempts = 0;
+    expect(() => withRetries(["workers", "get", "albireo"], () => {
+      attempts += 1;
+      throw notFound(["workers", "get", "albireo"]);
+    }, () => undefined, () => undefined)).toThrow(CfError);
+    expect(attempts).toBe(1);
+  });
+
+  it("runs a command again when the connection to Cloudflare failed", () => {
+    let attempts = 0;
+    withRetries(["d1", "list"], () => {
+      attempts += 1;
+      if (attempts === 1) throw new CfError(["d1", "list"], "TypeError: fetch failed");
+    }, () => undefined, () => undefined);
+    expect(attempts).toBe(2);
+  });
+});
+
 describe("deployStack", () => {
+  it("makes the database once when Cloudflare fails after it made the database", () => {
+    let created = false;
+    const cf = new FakeCf((args) => {
+      const command = args.slice(0, 3).join(" ");
+      if (command === "d1 list") return created ? [{ uuid: "db-1", name: "albireo" }] : [];
+      if (args[0] === "d1" && args[1] === "create") {
+        created = true;
+        return busy(args);
+      }
+      if (command === "zero-trust organization get") return ORGANIZATION;
+      if (command === "zero-trust identity-providers list") return LOGIN_METHODS;
+      if (command === "zero-trust access applications") {
+        if (args[3] === "list") return [];
+        if (args[3] === "create") return { id: "app-1", aud: "aud-1" };
+      }
+      if (command === "workers get albireo") return cf.callsOf("deploy").length > 0 ? { id: "worker-1" } : notFound(args);
+      if (command === "tags account-resources get") return untagged(args);
+      return {};
+    });
+    deployStack({ settings, secrets: SECRETS, cf, log: () => undefined, writeSecretsFile: writeSecretsFile([], []) });
+    expect(cf.callsOf("d1", "create")).toHaveLength(1);
+    expect(cf.pauses).toEqual([2000]);
+    expect(cf.callsOf("d1", "migrations", "apply")).toEqual([["d1", "migrations", "apply", "db-1", "--dir", "migrations"]]);
+  });
+
+  it("makes the Access application again when the failure came before Cloudflare made it", () => {
+    let attempts = 0;
+    const cf = new FakeCf((args) => {
+      const command = args.slice(0, 3).join(" ");
+      if (command === "d1 list") return [{ uuid: "db-1", name: "albireo" }];
+      if (command === "zero-trust organization get") return ORGANIZATION;
+      if (command === "zero-trust identity-providers list") return LOGIN_METHODS;
+      if (command === "zero-trust access applications") {
+        if (args[3] === "list") return [];
+        if (args[3] === "create") {
+          attempts += 1;
+          return attempts === 1 ? busy(args) : { id: "app-1", aud: "aud-1" };
+        }
+      }
+      if (command === "workers get albireo") return cf.callsOf("deploy").length > 0 ? { id: "worker-1" } : notFound(args);
+      if (command === "tags account-resources get") return untagged(args);
+      return {};
+    });
+    const written: Record<string, string>[] = [];
+    deployStack({ settings, secrets: SECRETS, cf, log: () => undefined, writeSecretsFile: writeSecretsFile(written, []) });
+    expect(cf.callsOf("zero-trust", "access", "applications", "create")).toHaveLength(2);
+    expect(written[0]?.["ACCESS_AUD"]).toBe("aud-1");
+  });
+
   it("creates the database and the Access application, migrates, deploys with the IDs, and tags each resource", () => {
     let deployed = false;
     const cf = new FakeCf((args) => {
