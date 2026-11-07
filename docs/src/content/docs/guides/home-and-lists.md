@@ -33,6 +33,7 @@ Before the library has its first video, Home and All videos say that it has none
 History (`/history`) lists the videos that the person watched, from the last watched.
 The player records a video when its playback starts, and each person sees only their own history (worker/app.ts).
 
-The sidebar on the left links to the three lists and to every series.
+The sidebar on the left links to the three lists and to the series.
+It lists the 5 series changed last, by their episodes or their title and description, and Show all under them lists every series, from the one changed last. The list stays open from page to page until the page loads again (src/components/Shell.tsx).
 On screens narrower than 1024px, the sidebar hides, and the menu button in the upper left corner opens it over the page.
 Dates show as YYYY/MM/DD (src/lib/format.ts, `formatDate`).

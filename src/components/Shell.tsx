@@ -1,5 +1,5 @@
-import { History, House, KeyRound, Layers, LayoutGrid, LogOut, Menu as MenuIcon, Plus, Search, Settings, UserRound, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { ChevronDown, ChevronUp, History, House, KeyRound, Layers, LayoutGrid, LogOut, Menu as MenuIcon, Plus, Search, Settings, UserRound, X } from "lucide-react";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import appearance from "virtual:albireo-appearance";
 import { SEARCH_QUERY_MAX_LENGTH, TITLE_MAX_LENGTH } from "../../shared/api.ts";
 import { api } from "../api.ts";
@@ -189,15 +189,35 @@ function AccountMenu() {
   );
 }
 
+// The sidebar lists this many series, the ones changed last, until Show all lists every one.
+const SIDEBAR_SERIES = 5;
+
+// Whether the sidebar lists every series. Each page draws the sidebar anew, so the choice is
+// kept here until the page loads again, and the list stays open from page to page.
+let everySeriesShown = false;
+
+/** A row after the series in the sidebar: an action, quieter than the pages. */
+const SIDEBAR_ACTION =
+  "-mx-1 flex h-[30px] items-center gap-3 rounded-sm px-2 text-sm text-subdued transition-colors duration-150 hover:bg-surface-hover hover:text-strong pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0";
+
 /**
- * The pages of the library and every series. The sidebar on wide screens and the
- * panel that slides in on narrow screens show the same, and the panel can close.
+ * The pages of the library and the series, the ones changed last first. The sidebar on wide
+ * screens and the panel that slides in on narrow screens show the same, and the panel can close.
  */
 function Sidebar({ closable = false }: { closable?: boolean }) {
   const { series, error } = useLibrary();
   const t = useT();
   const pathname = usePathname();
   const [creating, setCreating] = useState(false);
+  const [showAll, setShowAll] = useState(() => everySeriesShown);
+  const seriesListId = useId();
+  const hasMore = series !== null && series.length > SIDEBAR_SERIES;
+  const listed = series === null || showAll ? series : series.slice(0, SIDEBAR_SERIES);
+
+  function toggleAll() {
+    everySeriesShown = !showAll;
+    setShowAll(everySeriesShown);
+  }
 
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto px-5 pb-6">
@@ -225,24 +245,26 @@ function Sidebar({ closable = false }: { closable?: boolean }) {
       <div className="grid gap-1">
         <h2 className="flex h-7 items-center text-xs text-subdued">{t.common.series}</h2>
         {error !== "" && <p className="text-xs font-semibold text-critical">{error}</p>}
-        {series !== null && series.length > 0 && (
-          <nav className="-mx-1 grid gap-0.5" aria-label={t.common.series}>
-            {series.map((item) => (
+        {listed !== null && listed.length > 0 && (
+          <nav id={seriesListId} className="-mx-1 grid gap-0.5" aria-label={t.common.series}>
+            {listed.map((item) => (
               <NavLink key={item.id} to={`/series/${item.id}`} current={pathname === `/series/${item.id}`} icon={<Layers />}>
                 {item.title}
               </NavLink>
             ))}
           </nav>
         )}
-        {/* The row after the series opens the form for a new series, which takes its place. */}
+        {hasMore && (
+          <button type="button" onClick={toggleAll} aria-expanded={showAll} aria-controls={seriesListId} className={SIDEBAR_ACTION}>
+            {showAll ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
+            <span className="truncate">{showAll ? t.shell.showFewerSeries : t.shell.showAllSeries}</span>
+          </button>
+        )}
+        {/* The last row opens the form for a new series, which takes its place. */}
         {creating ? (
           <NewSeriesForm onDone={() => setCreating(false)} />
         ) : (
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="-mx-1 flex h-[30px] items-center gap-3 rounded-sm px-2 text-sm text-subdued transition-colors duration-150 hover:bg-surface-hover hover:text-strong pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0"
-          >
+          <button type="button" onClick={() => setCreating(true)} className={SIDEBAR_ACTION}>
             <Plus aria-hidden="true" />
             <span className="truncate">{t.shell.newSeries}</span>
           </button>
