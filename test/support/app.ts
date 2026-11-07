@@ -56,6 +56,7 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   });
   const env: Env = {
     DB: createTestDatabase(),
+    ASSETS: { fetch: async (request) => pageFromAssets(request) },
     AUTH_MODE: "cloudflare-access",
     ACCESS_TEAM_DOMAIN: TEAM_DOMAIN,
     ACCESS_AUD: AUD,
@@ -78,6 +79,15 @@ export async function createTestApp(options: TestAppOptions = {}): Promise<TestA
   };
   const signedRequest = async (path: string, init?: RequestInit) => requestAs(VIEWER_EMAIL, path, init);
   return { request, signedRequest, requestAs, env, store, access };
+}
+
+/** The page of the browser app, which the static assets return for every path, as they do for a single-page application. */
+export const PAGE_HTML = '<!doctype html><html lang="en"><body><div id="root"></div></body></html>';
+
+function pageFromAssets(request: Request): Response {
+  // A request that repeats the ETag of the page gets 304, as the static assets answer it.
+  if (request.headers.get("if-none-match") === '"page"') return new Response(null, { status: 304, headers: { etag: '"page"' } });
+  return new Response(PAGE_HTML, { headers: { "content-type": "text/html; charset=utf-8", etag: '"page"' } });
 }
 
 export function json(body: unknown, method = "POST"): RequestInit {

@@ -1,4 +1,4 @@
-// HTTP API of albireo, served under /api.
+// HTTP API of albireo, served under /api, and the pages of the browser app.
 //
 // createApp() takes Cloudflare Access, the storage service, the clock, and ID
 // generation as dependencies, so tests can replace them.
@@ -84,6 +84,7 @@ import {
 import { errorFields, log } from "./log.ts";
 import { RatingRepository } from "./ratings.ts";
 import { ConfigurationError, readRuntimeConfig, type RuntimeConfig } from "./runtime-config.ts";
+import { pageHeaders } from "./security-headers.ts";
 import { SeriesRepository, type SeriesRecord } from "./series.ts";
 import { StorageError, type CompletedPart, type ObjectStore } from "./storage.ts";
 import { MAX_OBJECT_SIZE, planParts, type PartPlan } from "./upload-plan.ts";
@@ -694,6 +695,19 @@ export function createApp(deps: AppDependencies): Hono<AppEnv> {
     return c.json<SeriesResponse>({
       series: await toSeriesDetail(c.env.DB, await findSeries(seriesRepository, series.id), viewer, store(c.get("config"))),
     });
+  });
+
+  // Pages of the browser app. A deployment runs the Worker for every request but the
+  // built files under /assets/ (cloudflare.config.ts), so that each page leaves with
+  // the security headers of security-headers.ts. The headers also go on a 304, which
+  // the browser uses to update the headers of the page that it keeps. Pages hold no
+  // data; the API checks the Access token of every request for data.
+  app.all("*", async (c) => {
+    if (c.req.path === "/api" || c.req.path.startsWith("/api/")) return c.notFound();
+    const page = await c.env.ASSETS.fetch(c.req.raw);
+    const response = new Response(page.body, page);
+    for (const [name, value] of Object.entries(pageHeaders(c.env))) response.headers.set(name, value);
+    return response;
   });
 
   app.notFound((c) => c.json<ApiErrorBody>(errorBody("not_found", "No API endpoint matches this request."), 404));

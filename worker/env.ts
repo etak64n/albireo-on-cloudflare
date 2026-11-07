@@ -18,8 +18,15 @@ export interface D1Database {
   prepare(query: string): D1PreparedStatement;
 }
 
+/** The static assets of the browser app, the part of the Workers API that albireo uses. */
+export interface AssetsBinding {
+  fetch(request: Request): Promise<Response>;
+}
+
 export interface Env {
   DB: D1Database;
+  /** The browser app. The Worker returns its pages with the headers of security-headers.ts. */
+  ASSETS: AssetsBinding;
   AUTH_MODE: string;
   /** Bound only in the "cloudflare-access" mode. */
   ACCESS_TEAM_DOMAIN?: string;

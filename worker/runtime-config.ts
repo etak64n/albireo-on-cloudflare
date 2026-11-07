@@ -49,7 +49,7 @@ export class ConfigurationError extends Error {
   }
 }
 
-type TextBinding = Exclude<keyof Env, "DB">;
+type TextBinding = Exclude<keyof Env, "DB" | "ASSETS">;
 
 const EMAIL = /^[^\sA-Z@]+@[^\sA-Z@]+\.[^\sA-Z@]+$/;
 

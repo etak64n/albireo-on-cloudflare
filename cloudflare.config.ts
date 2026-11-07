@@ -55,12 +55,18 @@ export default defineConfig(({ mode }) => {
       workersDev: false,
       previewUrls: false,
       observability: { enabled: true },
-      // The browser app is static assets. Only /api/* runs the Worker.
+      // The browser app is static assets. A deployment runs the Worker for /api/* and
+      // for the pages, which it returns with the security headers of
+      // worker/security-headers.ts; the built files under /assets/ skip the Worker.
+      // Under `cf dev`, only /api/* runs the Worker: the dev server of Vite puts inline
+      // scripts into its pages, which the Content-Security-Policy would block.
       assets: {
         notFoundHandling: "single-page-application",
-        runWorkerFirst: ["/api/*"],
+        runWorkerFirst: isDevelopment ? ["/api/*"] : ["/*", "!/assets/*"],
       },
       env: {
+        // The Worker reads the pages from here.
+        ASSETS: bindings.assets(),
         // API-only commands run without a mode and need no database ID.
         DB: bindings.d1({
           name: settings.database.name,

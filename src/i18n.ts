@@ -64,7 +64,7 @@ const en = {
     noPartUrl: (part: number) => `The API returned no URL for part ${part}.`,
     etagHidden: "The storage service hides the ETag header. Add ETag to ExposeHeaders in the bucket's CORS rules.",
     rejected: (status: number) => `The storage service rejected the upload with HTTP ${status}.`,
-    failed: "The upload failed. Check the network and the bucket's CORS rules.",
+    failed: "The upload failed. Check the network, the bucket's CORS rules, and the Content-Security-Policy of this site.",
   },
   api: {
     unreachable: "albireo could not be reached. If your sign-in expired, reload the page.",
@@ -72,7 +72,7 @@ const en = {
   },
   files: {
     storageAnswered: (status: number) => `The storage service answered HTTP ${status}.`,
-    unreadable: "The file could not be read. Check the network and the bucket's CORS rules.",
+    unreadable: "The file could not be read. Check the network, the bucket's CORS rules, and the Content-Security-Policy of this site.",
     pdfFailed: (reason: string) => `The PDF could not be opened: ${reason}`,
     firstRows: (count: number) => `The first ${count.toLocaleString("en")} rows.`,
   },
@@ -235,7 +235,7 @@ const ja: Messages = {
     noPartUrl: (part) => `API がパート ${part} の URL を返しませんでした。`,
     etagHidden: "ストレージサービスが ETag ヘッダーを隠しています。バケットの CORS ルールで ExposeHeaders に ETag を加えてください。",
     rejected: (status) => `ストレージサービスがアップロードを HTTP ${status} で拒否しました。`,
-    failed: "アップロードに失敗しました。ネットワークとバケットの CORS ルールを確認してください。",
+    failed: "アップロードに失敗しました。ネットワーク、バケットの CORS ルール、このサイトの Content-Security-Policy を確認してください。",
   },
   api: {
     unreachable: "albireo に接続できませんでした。サインインの期限が切れた場合は、ページを再読み込みしてください。",
@@ -243,7 +243,7 @@ const ja: Messages = {
   },
   files: {
     storageAnswered: (status) => `ストレージサービスが HTTP ${status} を返しました。`,
-    unreadable: "ファイルを読み込めませんでした。ネットワークとバケットの CORS ルールを確認してください。",
+    unreadable: "ファイルを読み込めませんでした。ネットワーク、バケットの CORS ルール、このサイトの Content-Security-Policy を確認してください。",
     pdfFailed: (reason) => `PDF を開けませんでした：${reason}`,
     firstRows: (count) => `最初の ${count.toLocaleString("ja")} 行です。`,
   },

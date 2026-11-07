@@ -34,15 +34,26 @@ albireo uses four parts.
 The Worker serves the browser app and the HTTP API.
 The browser app is a React single-page app built with Vite, and Cloudflare serves it as static assets.
 
-Only requests to `/api/*` run the Worker code, which uses the Hono framework (cloudflare.config.ts, worker/index.ts).
+The Worker code uses the Hono framework (cloudflare.config.ts, worker/index.ts).
+In a deployment, every request runs the Worker except the built files under `/assets/`, which Cloudflare sends straight from the static assets.
+The Worker answers `/api/*` itself.
+For any other path, it reads the page from the static assets and returns it with the security headers of worker/security-headers.ts.
 
 ```ts
-// cloudflare.config.ts: the browser app is static assets, and only /api/* runs the Worker
+// cloudflare.config.ts: a deployment runs the Worker for every path but /assets/*
 assets: {
   notFoundHandling: "single-page-application",
-  runWorkerFirst: ["/api/*"],
+  runWorkerFirst: isDevelopment ? ["/api/*"] : ["/*", "!/assets/*"],
 },
 ```
+
+Under `cf dev`, only `/api/*` runs the Worker, and the pages come without the security headers.
+The dev server of Vite puts inline scripts into its pages, which the Content-Security-Policy would block.
+
+A Content-Security-Policy is a response header that lists the sites that a page may load files from and send requests to.
+The browser blocks every other request before it leaves.
+The policy of albireo allows the bucket of the storage settings, because the page uploads to the bucket and plays videos, thumbnails, pictures, and attachments from it.
+It allows no other site but the script of Cloudflare Web Analytics.
 
 The browser app builds on these libraries (package.json).
 

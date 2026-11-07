@@ -36,6 +36,17 @@ The bucket stays outside the stack, because it can be at any S3-compatible provi
 
 Resource Tagging is in public beta at Cloudflare.
 
+## Response headers of the pages
+
+The Worker returns every page with a Content-Security-Policy (worker/security-headers.ts).
+A Content-Security-Policy is a response header that lists the sites that a page may load files from and send requests to, and the browser blocks every other request before it leaves.
+The policy of albireo allows the bucket of `production.storage`, because the page uploads to the bucket and plays videos, thumbnails, pictures, and attachments from it.
+
+Let this header reach the browser as the Worker sends it.
+A rule in front of the Worker that sets the header on every hostname of the zone, such as a Transform Rule, replaces the policy of albireo.
+The browser then blocks the requests to the bucket: uploads fail with "Check the network, the bucket's CORS rules, and the Content-Security-Policy of this site", and videos do not play.
+Leave the domain of albireo out of such a rule, or have the rule skip responses that already carry a Content-Security-Policy.
+
 ## Steps
 
 The deployment has five steps.
