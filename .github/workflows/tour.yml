@@ -1,8 +1,12 @@
-# Records the tour of the demo that the README shows at its top, from the demo on GitHub
-# Pages: the home page, a video that plays, files of several kinds attached to it in the
-# preview, a comment typed and posted with a time that plays the video from there, and a
-# search, zooming in on the details, with the logo at its start and its end. Run it by
-# hand after the screens change, then put the artifact at images/tour.gif.
+# Records the tours of the demo that the README shows, one GIF for each part of albireo,
+# from the demo on GitHub Pages:
+# - watch: the home page and a video that plays
+# - series: a series of 20 lessons, and the list of its episodes beside a lesson
+# - attachments: files of several kinds attached to a video, in the preview
+# - comments: a comment typed and posted, with a time that plays the video from there
+# - search: a search from the top bar
+# Each zooms in on the details, with the logo at its start and its end. Run it by hand
+# after the screens change, then put the artifact at images/tour-<part>.gif.
 name: Tour
 
 on:
@@ -14,9 +18,9 @@ permissions:
 jobs:
   tour:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
-      # The logo that opens and closes the tour.
+      # The logo that opens and closes each tour.
       - uses: actions/checkout@v5
         with:
           path: repo
@@ -30,8 +34,8 @@ jobs:
         with:
           node-version: 24
 
-      # Playwright goes in a package of its own next to the script of the tour, outside the
-      # checkout of albireo. The tour runs in the Google Chrome of the runner, since the
+      # Playwright goes in a package of its own next to the script of the tours, outside the
+      # checkout of albireo. The tours run in the Google Chrome of the runner, since the
       # Chromium of Playwright plays no H.264 video.
       - name: Install Playwright and ffmpeg
         run: |
@@ -40,18 +44,21 @@ jobs:
           google-chrome --version
           command -v ffmpeg || { sudo apt-get update && sudo apt-get install -y ffmpeg; }
 
-      # The tour captures the frames that the browser paints, at twice the density of pixels,
-      # and notes where and when to zoom. The page draws the mouse pointer, which the
-      # frames would not show.
-      - name: Record the tour
+      # Each tour captures the frames that the browser paints, at twice the density of
+      # pixels, and notes where and when to zoom. The page draws the mouse pointer, which
+      # the frames would not show.
+      - name: Record the tours
         env:
           DEMO_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
-          # A word of the titles of the sample videos, which the search of the tour finds.
-          TOUR_QUERY: design
-          # The files that the tour previews, of the featured video, one of each kind.
+          # The series with many episodes, and the episode that the series tour opens.
+          TOUR_SERIES: SQL in 20 lessons
+          TOUR_EPISODE: "SQL lesson 8:"
+          # The files that the attachments tour previews, of the featured video, one of each kind.
           TOUR_FILES: label-the-data.pdf label-the-data.pptx bar-chart.png uploads-by-team.csv chart-checklist.md
-          # The comment that the tour posts. Its time becomes a link in the posted comment.
+          # The comment that the comments tour posts. Its time becomes a link in the posted comment.
           TOUR_COMMENT: Trying this in our weekly report, starting with the chart at 0:05.
+          # A word of the titles of the sample videos, which the search tour finds.
+          TOUR_QUERY: design
         run: |
           cat > tour.mjs <<'SCRIPT'
           import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -59,6 +66,14 @@ jobs:
 
           const VIEW = { width: 1440, height: 900 };
           const SCALE = 2;
+          // The logo stays this long at the start and at the end of each tour, so that both
+          // show when the GIF plays again and again.
+          const OPENING = 0.8;
+          const CLOSING = 0.8;
+          // zoompan reads the time from the number of the output frame, at FPS frames a second.
+          const FPS = 8;
+          const RAMP = 0.6;
+
           const browser = await chromium.launch({ channel: "chrome" });
           const context = await browser.newContext({ viewport: VIEW, deviceScaleFactor: SCALE });
           await context.addInitScript(() => {
@@ -75,14 +90,16 @@ jobs:
           });
           const page = await context.newPage();
           const client = await context.newCDPSession(page);
-          // A playing video repaints the page many times a second, so each frame goes to a
-          // file as it comes, and only its time stays in memory.
-          mkdirSync("frames", { recursive: true });
-          const frames = [];
+
+          // The tour that records now. A playing video repaints the page many times a second,
+          // so each frame goes to a file as it comes, and only its time stays in memory.
+          let tour = null;
           client.on("Page.screencastFrame", ({ data, metadata, sessionId }) => {
-            const file = `frames/${String(frames.length).padStart(5, "0")}.jpg`;
-            writeFileSync(file, Buffer.from(data, "base64"));
-            frames.push({ file, time: metadata.timestamp });
+            if (tour !== null) {
+              const file = `frames/${String(tour.frames.length).padStart(5, "0")}.jpg`;
+              writeFileSync(`${tour.name}/${file}`, Buffer.from(data, "base64"));
+              tour.frames.push({ file, time: metadata.timestamp });
+            }
             client.send("Page.screencastFrameAck", { sessionId }).catch(() => {});
           });
 
@@ -99,192 +116,245 @@ jobs:
           };
           // Zooms in on a box of the viewport while the steps run, and out again after them. The
           // center is a share of the width and the height, whatever the size of the frames.
-          const zooms = [];
-          // Moments without a zoom that the previews show too.
-          const moments = [];
           const zoom = async (box, factor, steps) => {
             const from = seconds();
             await steps();
             const { x, y } = center(box);
-            zooms.push({ from, to: seconds(), x: x / VIEW.width, y: y / VIEW.height, factor });
+            tour.zooms.push({ from, to: seconds(), x: x / VIEW.width, y: y / VIEW.height, factor });
           };
+          // A moment without a zoom that the previews show too.
+          const moment = () => tour.moments.push(seconds());
 
-          // The card of the logo that opens and closes the tour, so that its start and its end
-          // show when the GIF plays again and again.
+          // The card of the logo.
           const logo = readFileSync("repo/images/albireo-wordmark.png").toString("base64");
           const sheet = await context.newPage();
           await sheet.setContent(
             `<body style="margin:0;height:100vh;display:grid;place-items:center;background:#fff">` +
               `<img src="data:image/png;base64,${logo}" style="width:460px" alt=""></body>`,
           );
-          await sheet.screenshot({ path: "frames/logo.jpg", scale: "css", type: "jpeg", quality: 92 });
+          await sheet.screenshot({ path: "logo.jpg", scale: "css", type: "jpeg", quality: 92 });
           await sheet.close();
 
-          await page.goto(process.env.DEMO_URL);
-          await page.getByRole("heading", { name: "Home", level: 1 }).waitFor();
-          await page.waitForLoadState("networkidle");
-          await pause(1000);
-          await client.send("Page.startScreencast", {
-            format: "jpeg",
-            quality: 92,
-            maxWidth: VIEW.width * SCALE,
-            maxHeight: VIEW.height * SCALE,
-            everyNthFrame: 1,
-          });
-          await page.mouse.move(760, 520);
-          await pause(1500);
-
-          // The video recommended first on the home page, and the way to play it.
-          const feature = page.locator("main a").filter({ has: page.locator("h2") }).first();
-          const play = feature.getByText("Play", { exact: true });
-          await zoom(await feature.boundingBox(), 1.3, async () => {
-            await pointAt(play);
-            await pause(2000);
-          });
-          await play.click();
-
-          // The video plays in the player of its page.
-          const video = page.locator("video").first();
-          await video.waitFor({ state: "attached" });
-          await page.waitForLoadState("networkidle");
-          await pause(1000);
-          const stage = await video.boundingBox();
-          await zoom(stage, 1.25, async () => {
-            await page.mouse.move(stage.x + stage.width / 2, stage.y + stage.height / 2, { steps: 30 });
-            await pause(500);
-            const start = page.getByRole("button", { name: "Play", exact: true }).first();
-            if (await start.isVisible()) {
-              await pointAt(start, 20);
-              await start.click();
-            } else {
-              await page.mouse.click(stage.x + stage.width / 2, stage.y + stage.height / 2);
-            }
-            await page
-              .waitForFunction(() => document.querySelector("video")?.paused === false, null, { timeout: 5000 })
-              .catch(() => video.evaluate((element) => element.play()));
-            await page.mouse.move(stage.x + stage.width * 0.66, stage.y + stage.height * 0.36, { steps: 20 });
-            await pause(4000);
-          });
-
-          // Files of several kinds attached to the video, each in the preview over the page.
-          await page.mouse.move(1340, 520, { steps: 15 });
-          await scrollTo(page.getByRole("heading", { name: "Attachments" }));
-          for (const fileName of process.env.TOUR_FILES.split(" ")) {
-            const preview = page.locator("li").filter({ hasText: fileName }).getByRole("button", { name: "Preview" });
-            await pointAt(preview, 20);
-            await pause(300);
-            await preview.click();
-            await page.getByRole("dialog").waitFor();
+          // Opens the home page, ready to record.
+          const openHome = async () => {
+            await page.goto(process.env.DEMO_URL);
+            await page.getByRole("heading", { name: "Home", level: 1 }).waitFor();
             await page.waitForLoadState("networkidle");
-            await pause(1300);
-            moments.push(seconds());
-            await pause(1300);
-            await page.keyboard.press("Escape");
-            await pause(600);
-          }
+            await page.mouse.move(760, 520);
+          };
+          // The video recommended first on the home page, and the way to play it.
+          const feature = () => page.locator("main a").filter({ has: page.locator("h2") }).first();
+          // Opens the page of the video recommended first, and shows a part of it at once.
+          const openFeatured = async (heading) => {
+            await openHome();
+            await feature().getByText("Play", { exact: true }).click();
+            await page.locator("video").first().waitFor({ state: "attached" });
+            await page.waitForLoadState("networkidle");
+            await page.getByRole("heading", { name: heading }).evaluate((element) => element.scrollIntoView({ block: "start" }));
+            await page.mouse.move(1340, 520);
+          };
 
-          // A comment, typed and posted. Its time becomes a link, which plays the video from there.
-          await scrollTo(page.getByRole("heading", { name: "Comments" }));
-          const field = page.getByPlaceholder("Add a comment");
-          const form = await field.boundingBox();
-          const posted = page.locator("li").filter({ hasText: process.env.TOUR_COMMENT });
-          const time = posted.locator("button").filter({ hasText: /^\d{1,2}:\d{2}$/ }).first();
-          await pointAt(field);
-          await field.click();
-          await zoom({ x: form.x - 40, y: form.y - 50, width: form.width + 80, height: 320 }, 1.5, async () => {
-            await page.keyboard.type(process.env.TOUR_COMMENT, { delay: 55 });
-            await pause(500);
-            const post = page.getByRole("button", { name: "Comment", exact: true });
-            await pointAt(post, 20);
-            await post.click();
-            await time.waitFor();
-            await pause(800);
-            moments.push(seconds());
-            await pointAt(time);
-            await pause(1600);
+          // Records the steps of a tour from the page as it is, and writes what makes its GIF:
+          // the frames, each shown until the next one, between the logo cards, and the zooms on
+          // the same clock. The concat demuxer keeps the duration of the last file only when the
+          // file comes again after it.
+          const record = async (name, steps) => {
+            mkdirSync(`${name}/frames`, { recursive: true });
+            tour = { name, frames: [], zooms: [], moments: [] };
+            await client.send("Page.startScreencast", {
+              format: "jpeg",
+              quality: 92,
+              maxWidth: VIEW.width * SCALE,
+              maxHeight: VIEW.height * SCALE,
+              everyNthFrame: 1,
+            });
+            await pause(900);
+            await steps();
+            await pause(1200);
+            // The browser sends a frame only when the page changes, so the last frame lasts until here.
+            const stopped = seconds();
+            await client.send("Page.stopScreencast");
+            const { frames, zooms, moments } = tour;
+            tour = null;
+
+            const start = frames[0].time - OPENING;
+            const lines = ["ffconcat version 1.0", "file '../logo.jpg'", `duration ${OPENING}`];
+            frames.forEach((frame, index) => {
+              const next = frames[index + 1];
+              const until = next === undefined ? Math.max(stopped, frame.time + 0.1) : next.time;
+              lines.push(`file '${frame.file}'`, `duration ${Math.max(0.001, until - frame.time).toFixed(3)}`);
+            });
+            lines.push("file '../logo.jpg'", `duration ${CLOSING}`, "file '../logo.jpg'");
+            writeFileSync(`${name}/tour.ffconcat`, lines.join("\n") + "\n");
+
+            const t = `(on/${FPS})`;
+            const windows = zooms.map((zoom) => ({ ...zoom, from: zoom.from - start, to: zoom.to - start }));
+            const factor = windows.length === 0
+              ? "0"
+              : windows.map((w) => `${w.factor - 1}*clip(min((${t}-${w.from.toFixed(2)})/${RAMP},(${w.to.toFixed(2)}-${t})/${RAMP}),0,1)`).join("+");
+            const pick = (key, side) =>
+              windows.reduceRight((rest, w) => `if(between(${t},${w.from.toFixed(2)},${w.to.toFixed(2)}),${side}*${w[key].toFixed(4)},${rest})`, `${side}/2`);
+            // Fewer frames and colors keep the GIF small, at a quality that still reads well.
+            const filter = [
+              `fps=${FPS}`,
+              `zoompan=z='1+${factor}':x='clip(${pick("x", "iw")}-iw/zoom/2,0,iw-iw/zoom)':y='clip(${pick("y", "ih")}-ih/zoom/2,0,ih-ih/zoom)':d=1:s=1120x700:fps=${FPS}`,
+              "split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle",
+            ].join(",");
+            writeFileSync(`${name}/filter.txt`, filter);
+            const total = Math.max(stopped, frames.at(-1).time + 0.1) - start + CLOSING;
+            const previews = [OPENING + 0.5, ...windows.map((w) => (w.from + w.to) / 2), ...moments.map((at) => at - start), total - CLOSING - 0.3].sort((a, b) => a - b);
+            writeFileSync(`${name}/previews.txt`, previews.map((time) => time.toFixed(2)).join("\n") + "\n");
+            console.log(`${name}: ${frames.length} frames over ${(total).toFixed(1)} s, ${zooms.length} zooms`);
+          };
+
+          // Watch: the video recommended first, which plays in the player of its page.
+          await openHome();
+          await record("watch", async () => {
+            const play = feature().getByText("Play", { exact: true });
+            await zoom(await feature().boundingBox(), 1.3, async () => {
+              await pointAt(play);
+              await pause(1800);
+            });
+            await play.click();
+            const video = page.locator("video").first();
+            await video.waitFor({ state: "attached" });
+            await page.waitForLoadState("networkidle");
+            await pause(1000);
+            const stage = await video.boundingBox();
+            await zoom(stage, 1.25, async () => {
+              await page.mouse.move(stage.x + stage.width / 2, stage.y + stage.height / 2, { steps: 30 });
+              await pause(500);
+              const start = page.getByRole("button", { name: "Play", exact: true }).first();
+              if (await start.isVisible()) {
+                await pointAt(start, 20);
+                await start.click();
+              } else {
+                await page.mouse.click(stage.x + stage.width / 2, stage.y + stage.height / 2);
+              }
+              await page
+                .waitForFunction(() => document.querySelector("video")?.paused === false, null, { timeout: 5000 })
+                .catch(() => video.evaluate((element) => element.play()));
+              await page.mouse.move(stage.x + stage.width * 0.66, stage.y + stage.height * 0.36, { steps: 20 });
+              await pause(4200);
+            });
           });
-          await time.click();
-          await pause(3400);
 
-          // A search from the header, and the videos that it finds.
-          const search = page.getByRole("textbox", { name: "Search videos" });
-          await pointAt(search);
-          await search.click();
-          await page.keyboard.type(process.env.TOUR_QUERY, { delay: 120 });
-          await page.keyboard.press("Enter");
-          // The title of the video holds the word too, so wait for the heading of the results.
-          const results = page.getByRole("heading", { level: 1, name: `Results for “${process.env.TOUR_QUERY}”` });
-          await results.waitFor();
-          await page.waitForLoadState("networkidle");
-          await page.mouse.move(1340, 600, { steps: 15 });
-          await pause(800);
-          const heading = await results.boundingBox();
-          const main = await page.locator("main").boundingBox();
-          await zoom({ x: main.x, y: heading.y - 20, width: main.width, height: 560 }, 1.3, () => pause(3200));
-          await pause(1200);
+          // Series: a series of many episodes, and the list of its episodes beside one of them.
+          await openHome();
+          await record("series", async () => {
+            const link = page.getByRole("link", { name: process.env.TOUR_SERIES, exact: true });
+            await pointAt(link);
+            await link.click();
+            await page.getByRole("heading", { name: process.env.TOUR_SERIES, level: 1 }).waitFor();
+            await page.waitForLoadState("networkidle");
+            await pause(600);
+            const main = await page.locator("main").boundingBox();
+            await zoom({ x: main.x, y: main.y, width: main.width, height: 640 }, 1.2, () => pause(2600));
+            const episode = page.getByRole("link", { name: new RegExp(process.env.TOUR_EPISODE) }).first();
+            // The middle of the page, so that the top bar covers no part of the episode.
+            await episode.evaluate((element) => element.scrollIntoView({ behavior: "smooth", block: "center" }));
+            await pause(1400);
+            await pointAt(episode);
+            await pause(400);
+            await episode.click();
+            const list = page.getByRole("navigation", { name: "Series" }).locator("ol");
+            await list.waitFor();
+            await page.waitForLoadState("networkidle");
+            await pause(800);
+            const box = await list.boundingBox();
+            await zoom(box, 1.5, async () => {
+              await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 25 });
+              await pause(1400);
+              await page.mouse.wheel(0, 260);
+              await pause(1400);
+              await page.mouse.wheel(0, -520);
+              await pause(1600);
+            });
+          });
 
-          // The browser sends a frame only when the page changes, so the last frame lasts until here.
-          const stopped = seconds();
-          await client.send("Page.stopScreencast");
+          // Attachments: files of several kinds attached to the video, each in the preview over the page.
+          await openFeatured("Attachments");
+          await record("attachments", async () => {
+            for (const fileName of process.env.TOUR_FILES.split(" ")) {
+              const preview = page.locator("li").filter({ hasText: fileName }).getByRole("button", { name: "Preview" });
+              await pointAt(preview, 20);
+              await pause(300);
+              await preview.click();
+              await page.getByRole("dialog").waitFor();
+              await page.waitForLoadState("networkidle");
+              await pause(1300);
+              moment();
+              await pause(1300);
+              await page.keyboard.press("Escape");
+              await pause(600);
+            }
+          });
+
+          // Comments: a comment, typed and posted. Its time becomes a link, which plays the video from there.
+          await openFeatured("Comments");
+          await record("comments", async () => {
+            const field = page.getByPlaceholder("Add a comment");
+            const form = await field.boundingBox();
+            const posted = page.locator("li").filter({ hasText: process.env.TOUR_COMMENT });
+            const time = posted.locator("button").filter({ hasText: /^\d{1,2}:\d{2}$/ }).first();
+            await pointAt(field);
+            await field.click();
+            await zoom({ x: form.x - 40, y: form.y - 50, width: form.width + 80, height: 320 }, 1.5, async () => {
+              await page.keyboard.type(process.env.TOUR_COMMENT, { delay: 55 });
+              await pause(500);
+              const post = page.getByRole("button", { name: "Comment", exact: true });
+              await pointAt(post, 20);
+              await post.click();
+              await time.waitFor();
+              await pause(800);
+              moment();
+              await pointAt(time);
+              await pause(1600);
+            });
+            await time.click();
+            await pause(3400);
+          });
+
+          // Search: a search from the top bar, and the videos that it finds.
+          await openHome();
+          await record("search", async () => {
+            const search = page.getByRole("textbox", { name: "Search videos" });
+            await pointAt(search);
+            await search.click();
+            await page.keyboard.type(process.env.TOUR_QUERY, { delay: 120 });
+            await page.keyboard.press("Enter");
+            // The titles of the videos hold the word too, so wait for the heading of the results.
+            const results = page.getByRole("heading", { level: 1, name: `Results for “${process.env.TOUR_QUERY}”` });
+            await results.waitFor();
+            await page.waitForLoadState("networkidle");
+            await page.mouse.move(1340, 600, { steps: 15 });
+            await pause(800);
+            const heading = await results.boundingBox();
+            const main = await page.locator("main").boundingBox();
+            await zoom({ x: main.x, y: heading.y - 20, width: main.width, height: 560 }, 1.3, () => pause(3200));
+          });
+
           await context.close();
           await browser.close();
-
-          // The frames, each shown until the next one, between the cards, and the zooms on the
-          // same clock. The concat demuxer keeps the duration of the last file only when the file
-          // comes again after it.
-          const OPENING = 1.5;
-          const CLOSING = 1.5;
-          const start = frames[0].time - OPENING;
-          const lines = ["ffconcat version 1.0", "file 'frames/logo.jpg'", `duration ${OPENING}`];
-          frames.forEach((frame, index) => {
-            const next = frames[index + 1];
-            const until = next === undefined ? Math.max(stopped, frame.time + 0.1) : next.time;
-            lines.push(`file '${frame.file}'`, `duration ${Math.max(0.001, until - frame.time).toFixed(3)}`);
-          });
-          lines.push("file 'frames/logo.jpg'", `duration ${CLOSING}`, "file 'frames/logo.jpg'");
-          writeFileSync("tour.ffconcat", lines.join("\n") + "\n");
-
-          // zoompan reads the time from the number of the output frame, at FPS frames a second.
-          const FPS = 8;
-          const RAMP = 0.6;
-          const t = `(on/${FPS})`;
-          const windows = zooms.map((zoom) => ({ ...zoom, from: zoom.from - start, to: zoom.to - start }));
-          const factor = windows
-            .map((w) => `${w.factor - 1}*clip(min((${t}-${w.from.toFixed(2)})/${RAMP},(${w.to.toFixed(2)}-${t})/${RAMP}),0,1)`)
-            .join("+");
-          const pick = (key, side) =>
-            windows.reduceRight((rest, w) => `if(between(${t},${w.from.toFixed(2)},${w.to.toFixed(2)}),${side}*${w[key].toFixed(4)},${rest})`, `${side}/2`);
-          // Fewer frames and colors keep the GIF small, at a quality that still reads well.
-          const filter = [
-            `fps=${FPS}`,
-            `zoompan=z='1+${factor}':x='clip(${pick("x", "iw")}-iw/zoom/2,0,iw-iw/zoom)':y='clip(${pick("y", "ih")}-ih/zoom/2,0,ih-ih/zoom)':d=1:s=1120x700:fps=${FPS}`,
-            "split[a][b];[a]palettegen=max_colors=96:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle",
-          ].join(",");
-          writeFileSync("filter.txt", filter);
-          const total = Math.max(stopped, frames.at(-1).time + 0.1) - start + CLOSING;
-          const previews = [1, ...windows.map((w) => (w.from + w.to) / 2), ...moments.map((moment) => moment - start), total - 1].sort((a, b) => a - b);
-          writeFileSync("previews.txt", previews.map((time) => time.toFixed(2)).join("\n") + "\n");
-          // The size of a JPEG frame, from its start-of-frame segment.
-          const sizeOf = (jpeg) => {
-            for (let at = 2; at < jpeg.length; at += 2 + jpeg.readUInt16BE(at + 2)) {
-              if (jpeg[at + 1] >= 0xc0 && jpeg[at + 1] <= 0xc2) return `${jpeg.readUInt16BE(at + 7)}x${jpeg.readUInt16BE(at + 5)}`;
-            }
-            return "unknown";
-          };
-          console.log(`${frames.length} frames of ${sizeOf(readFileSync(frames[0].file))} over ${(frames.at(-1).time - start).toFixed(1)} s, ${zooms.length} zooms`);
           SCRIPT
           node tour.mjs
 
-      - name: Make the GIF
-        run: ffmpeg -y -loglevel error -f concat -safe 0 -i tour.ffconcat -filter_complex "$(cat filter.txt)" tour.gif && ls -la tour.gif
+      - name: Make the GIFs
+        run: |
+          for tour in watch series attachments comments search; do
+            ffmpeg -nostdin -y -loglevel error -f concat -safe 0 -i "$tour/tour.ffconcat" -filter_complex "$(cat "$tour/filter.txt")" "tour-$tour.gif"
+          done
+          ls -la tour-*.gif
 
-      # Still frames of the start, of the middle of each zoom, and of the moments that the
-      # tour notes, to check the tour without playing the GIF.
+      # Still frames of the start, of the middle of each zoom, of the moments that the tours
+      # note, and of the end, to check the tours without playing the GIFs.
       - name: Make the previews
         run: |
-          mapfile -t times < previews.txt
-          for index in "${!times[@]}"; do
-            ffmpeg -nostdin -y -loglevel error -ss "${times[$index]}" -i tour.gif -frames:v 1 "preview-$((index + 1)).png"
+          for tour in watch series attachments comments search; do
+            mapfile -t times < "$tour/previews.txt"
+            for index in "${!times[@]}"; do
+              ffmpeg -nostdin -y -loglevel error -ss "${times[$index]}" -i "tour-$tour.gif" -frames:v 1 "preview-$tour-$((index + 1)).png"
+            done
           done
           ls -la preview-*.png
 
@@ -292,6 +362,6 @@ jobs:
         with:
           name: tour
           path: |
-            tour.gif
+            tour-*.gif
             preview-*.png
           if-no-files-found: error
