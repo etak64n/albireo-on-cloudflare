@@ -5,6 +5,7 @@ import { EmptyLibrary } from "../components/EmptyLibrary.tsx";
 import { LoadMore } from "../components/LoadMore.tsx";
 import { PageHeader } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
+import { Filter } from "../components/ui/filter.tsx";
 import { VideoGrid, VideoGridSkeleton } from "../components/VideoGrid.tsx";
 import { useT } from "../i18n.ts";
 import { usePageTitle } from "../lib/title.ts";
@@ -59,25 +60,18 @@ export function AllVideosPage() {
 
   return (
     <Shell>
-      <PageHeader
-        title={t.common.allVideos}
-        actions={
-          <label className="flex items-center gap-2 text-sm text-label">
-            {t.sort.label}
-            <select
-              value={sort}
-              onChange={(event) => navigate(event.target.value === "newest" ? "/videos" : `/videos?sort=${event.target.value}`)}
-              className="field w-auto"
-            >
-              {VIDEO_SORTS.map((option) => (
-                <option key={option} value={option}>
-                  {t.sort[option]}
-                </option>
-              ))}
-            </select>
-          </label>
-        }
-      />
+      <div className="grid gap-4">
+        <PageHeader title={t.common.allVideos} />
+        {/* The filters of the page stand under its title. */}
+        <div className="flex flex-wrap gap-2">
+          <Filter
+            name={t.sort.label}
+            value={sort}
+            options={VIDEO_SORTS.map((option) => ({ value: option, label: t.sort[option] }))}
+            onChange={(next) => navigate(next === "newest" ? "/videos" : `/videos?sort=${next}`)}
+          />
+        </div>
+      </div>
       {error && <p className="error-box">{error}</p>}
       {videos === null && error === "" && <VideoGridSkeleton />}
       {videos !== null && videos.length === 0 && <EmptyLibrary />}

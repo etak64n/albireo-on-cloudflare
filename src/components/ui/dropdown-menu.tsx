@@ -39,6 +39,26 @@ export function DropdownMenuItem({ className, ...props }: ComponentProps<typeof 
   );
 }
 
+export const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
+
+/**
+ * An item of a menu that chooses one value. The chosen one shows on the subtle accent with
+ * the accent for its text, without a check mark.
+ */
+export function DropdownMenuRadioItem({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitive.RadioItem>) {
+  return (
+    <DropdownMenuPrimitive.RadioItem
+      data-slot="dropdown-menu-radio-item"
+      className={cn(
+        "flex min-h-7 cursor-pointer items-center rounded-xs px-2 py-1 text-sm outline-none select-none pointer-coarse:min-h-11",
+        "data-[highlighted]:bg-surface-hover data-[state=checked]:bg-accent-subtle data-[state=checked]:text-accent",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
 export function DropdownMenuLabel({ className, ...props }: ComponentProps<typeof DropdownMenuPrimitive.Label>) {
   return <DropdownMenuPrimitive.Label data-slot="dropdown-menu-label" className={cn("px-2 py-1.5", className)} {...props} />;
 }
