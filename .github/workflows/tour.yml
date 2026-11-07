@@ -1,8 +1,8 @@
 # Records the tour of the demo that the README shows at its top, from the demo on GitHub
 # Pages: the home page, a video that plays, the slides attached to it, a comment typed
-# and posted with a time that plays the video from there, and a search, zooming in on the
-# details, with the logo at its start and its end. Run it by hand after the screens change,
-# then put the artifact at images/tour.gif.
+# and posted with a time that plays the video from there, a search, and the home page in
+# dark mode, zooming in on the details, with the logo at its start and its end. Run it by
+# hand after the screens change, then put the artifact at images/tour.gif.
 name: Tour
 
 on:
@@ -217,6 +217,18 @@ jobs:
           const main = await page.locator("main").boundingBox();
           await zoom({ x: main.x, y: heading.y - 20, width: main.width, height: 560 }, 1.3, () => pause(3200));
           await pause(1200);
+
+          // The library in dark mode, which follows the mode of the device.
+          await page.emulateMedia({ colorScheme: "dark" });
+          await pause(1500);
+          moments.push(seconds());
+          const home = page.getByRole("link", { name: "Home", exact: true });
+          await pointAt(home);
+          await home.click();
+          await page.getByRole("heading", { name: "Home", level: 1 }).waitFor();
+          await page.waitForLoadState("networkidle");
+          await pause(2600);
+          moments.push(seconds());
 
           // The browser sends a frame only when the page changes, so the last frame lasts until here.
           const stopped = seconds();
