@@ -78,9 +78,12 @@ function Toast({ item, onDismiss }: { item: ToastItem; onDismiss: (id: number) =
     >
       <p className="min-w-0 flex-1 break-words">{item.message}</p>
       {item.link !== undefined && (
-        <Link to={item.link.to} onClick={() => onDismiss(item.id)} className="shrink-0 rounded-xs font-semibold text-accent hover:underline">
-          {item.link.label}
-        </Link>
+        // The message goes when its link opens the page, as the click comes up from the link.
+        <span className="shrink-0" onClick={() => onDismiss(item.id)}>
+          <Link to={item.link.to} className="rounded-xs font-semibold text-accent hover:underline">
+            {item.link.label}
+          </Link>
+        </span>
       )}
       <button
         type="button"
