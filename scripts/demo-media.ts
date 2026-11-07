@@ -1,12 +1,13 @@
 // Makes the files of the demo on GitHub Pages that src/demo/media.ts names, so that the
 // demo looks like a library in real use. Chromium, through Playwright, draws the slides,
 // the mock screens, and the pictures of the people (scripts/demo-content.ts), and prints
-// two decks as PDF attachments. ffmpeg turns the slides into videos with gentle
+// a deck as a PDF attachment. pptxgenjs makes another deck a PowerPoint file, and docx
+// makes a Word document of questions and answers. ffmpeg turns the slides into videos with gentle
 // crossfades, scrolls through a document as a screen recording does, and draws two calm
 // loops of drifting color and soft light. The videos are silent. Nothing is downloaded,
 // and nothing shows a person. The Pages workflow runs this after the demo build, with
-// ffmpeg on the PATH and Playwright installed in a folder of its own:
-//   node scripts/demo-media.ts <folder of the demo build> <folder of Playwright>
+// ffmpeg on the PATH and Playwright, pptxgenjs, and docx installed in a folder of their own:
+//   node scripts/demo-media.ts <folder of the demo build> <folder of the tools>
 
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
@@ -15,7 +16,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createLibrary } from "../src/demo/data.ts";
 import { ATTACHMENT_FILES, MEDIA_PATHS, PICTURE_FILES, VIDEO_SECONDS, type AttachmentFile, type VideoFile } from "../src/demo/media.ts";
-import { CHECKLIST_SCREENS, DECKS, NOTES, SCREENS, deckPage, monogram, slidePages, type DeckName } from "./demo-content.ts";
+import { CHECKLIST_SCREENS, DECKS, NOTES, PRICING_FAQ, SCREENS, deckPage, monogram, slidePages, type Answers, type DeckName } from "./demo-content.ts";
 
 const WIDTH = 1280;
 const HEIGHT = 720;
@@ -43,6 +44,29 @@ interface Browser {
 
 interface Playwright {
   chromium: { launch(): Promise<Browser> };
+}
+
+// The parts of pptxgenjs and docx that this script uses, which are no dependencies of
+// albireo either.
+interface PptxDeck {
+  layout: string;
+  title: string;
+  author: string;
+  addSlide(): { addImage(options: { path: string; x: number; y: number; w: number; h: number }): unknown };
+  writeFile(options: { fileName: string }): Promise<string>;
+}
+
+type PptxGenJS = new () => PptxDeck;
+
+interface Docx {
+  Document: new (options: object) => object;
+  Packer: { toBuffer(document: object): Promise<Buffer> };
+  Paragraph: new (options: object) => object;
+  Table: new (options: object) => object;
+  TableRow: new (options: object) => object;
+  TableCell: new (options: object) => object;
+  HeadingLevel: { TITLE: string; HEADING_1: string; HEADING_2: string };
+  WidthType: { PERCENTAGE: string };
 }
 
 // What a video shows: the slides of a deck, screens of an app one after another, a
@@ -107,10 +131,19 @@ const VIDEOS: Record<VideoFile, SampleVideo> = {
 
 const VIDEO_NAMES = Object.keys(VIDEOS) as VideoFile[];
 
-// Two decks also go with their videos as PDF files of their slides.
-const ATTACHMENTS: Record<AttachmentFile, { deck: DeckName } | { text: string }> = {
-  chartSlides: { deck: "tipCharts" },
-  kickoffSlides: { deck: "kickoff" },
+// Two decks also go with their videos: one as a PDF of its slides, and one as a
+// PowerPoint file with a picture of each slide. The answers about the prices are a Word
+// document, and the notes are text.
+type AttachmentSource =
+  | { pdf: DeckName }
+  | { pptx: DeckName; title: string; author: string }
+  | { docx: Answers }
+  | { text: string };
+
+const ATTACHMENTS: Record<AttachmentFile, AttachmentSource> = {
+  chartSlides: { pdf: "tipCharts" },
+  kickoffSlides: { pptx: "kickoff", title: "Q4 kickoff", author: "Priya Nair" },
+  pricingFaq: { docx: PRICING_FAQ },
   timeline: { text: NOTES.timeline },
   latency: { text: NOTES.latency },
   checklist: { text: NOTES.checklist },
@@ -208,18 +241,61 @@ async function draw(page: Page, pages: readonly string[], size: { width: number;
   return pictures;
 }
 
+/** A PowerPoint file with a picture of each slide, as a deck saved for the screens of an office looks. */
+async function powerPoint(PptxGen: PptxGenJS, slides: readonly string[], about: { title: string; author: string }, output: string): Promise<void> {
+  const deck = new PptxGen();
+  // 13.333 by 7.5 inches: 16:9, like the slides.
+  deck.layout = "LAYOUT_WIDE";
+  deck.title = about.title;
+  deck.author = about.author;
+  for (const slide of slides) deck.addSlide().addImage({ path: slide, x: 0, y: 0, w: 13.333, h: 7.5 });
+  await deck.writeFile({ fileName: output });
+}
+
+/** A Word document of questions and answers, with a table. */
+async function wordDocument(docx: Docx, answers: Answers): Promise<Buffer> {
+  const { Document, Packer, Paragraph, Table, TableRow, TableCell, HeadingLevel, WidthType } = docx;
+  const cell = (text: string) => new TableCell({ children: [new Paragraph({ text })] });
+  const document = new Document({
+    creator: answers.author,
+    title: answers.title,
+    sections: [
+      {
+        children: [
+          new Paragraph({ text: answers.title, heading: HeadingLevel.TITLE }),
+          new Paragraph({ text: answers.intro }),
+          new Paragraph({ text: "Prices", heading: HeadingLevel.HEADING_1 }),
+          new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: answers.table.map((row) => new TableRow({ children: row.map(cell) })) }),
+          new Paragraph({ text: answers.tableNote }),
+          new Paragraph({ text: "Questions", heading: HeadingLevel.HEADING_1 }),
+          ...answers.questions.flatMap(([question, answer]) => [
+            new Paragraph({ text: question, heading: HeadingLevel.HEADING_2 }),
+            new Paragraph({ text: answer }),
+          ]),
+        ],
+      },
+    ],
+  });
+  return Packer.toBuffer(document);
+}
+
 function prepare(site: string, path: string): string {
   const file = join(site, path);
   mkdirSync(dirname(file), { recursive: true });
   return file;
 }
 
-async function main(site: string, playwrightFolder: string): Promise<void> {
+async function main(site: string, toolsFolder: string): Promise<void> {
   const work = mkdtempSync(join(tmpdir(), "albireo-demo-"));
   const frame = { width: WIDTH, height: HEIGHT };
   const made: string[] = [];
 
-  const { chromium } = createRequire(join(playwrightFolder, "package.json"))("playwright") as Playwright;
+  const tools = createRequire(join(toolsFolder, "package.json"));
+  const { chromium } = tools("playwright") as Playwright;
+  // The CommonJS build of pptxgenjs exports the class, or the class as its default.
+  const pptxgenjs = tools("pptxgenjs") as PptxGenJS | { default: PptxGenJS };
+  const PptxGen = "default" in pptxgenjs ? pptxgenjs.default : pptxgenjs;
+  const docx = tools("docx") as Docx;
   const browser = await chromium.launch();
   const page = await browser.newPage();
 
@@ -240,10 +316,16 @@ async function main(site: string, playwrightFolder: string): Promise<void> {
 
   for (const key of ATTACHMENT_KEYS) {
     const attachment = ATTACHMENTS[key];
-    if (!("deck" in attachment)) continue;
     const path = MEDIA_PATHS.attachment(ATTACHMENT_FILES[key].fileName);
-    await show(page, deckPage(DECKS[attachment.deck]));
-    await page.pdf({ path: prepare(site, path), width: `${WIDTH}px`, height: `${HEIGHT}px`, printBackground: true });
+    if ("pdf" in attachment) {
+      await show(page, deckPage(DECKS[attachment.pdf]));
+      await page.pdf({ path: prepare(site, path), width: `${WIDTH}px`, height: `${HEIGHT}px`, printBackground: true });
+    } else if ("pptx" in attachment) {
+      const slides = await draw(page, slidePages(DECKS[attachment.pptx]), frame, (index) => join(work, `${key}-${index + 1}.jpg`), { jpeg: true });
+      await powerPoint(PptxGen, slides, attachment, prepare(site, path));
+    } else {
+      continue;
+    }
     made.push(path);
   }
 
@@ -275,9 +357,10 @@ async function main(site: string, playwrightFolder: string): Promise<void> {
 
   for (const key of ATTACHMENT_KEYS) {
     const attachment = ATTACHMENTS[key];
-    if (!("text" in attachment)) continue;
     const path = MEDIA_PATHS.attachment(ATTACHMENT_FILES[key].fileName);
-    writeFileSync(prepare(site, path), attachment.text);
+    if ("text" in attachment) writeFileSync(prepare(site, path), attachment.text);
+    else if ("docx" in attachment) writeFileSync(prepare(site, path), await wordDocument(docx, attachment.docx));
+    else continue;
     made.push(path);
   }
 
@@ -292,9 +375,9 @@ async function main(site: string, playwrightFolder: string): Promise<void> {
   console.log(`${String(total).padStart(10)}  in all`);
 }
 
-const [site, playwrightFolder] = process.argv.slice(2);
-if (site === undefined || playwrightFolder === undefined) {
-  console.error("Usage: node scripts/demo-media.ts <folder of the demo build> <folder of Playwright>");
+const [site, toolsFolder] = process.argv.slice(2);
+if (site === undefined || toolsFolder === undefined) {
+  console.error("Usage: node scripts/demo-media.ts <folder of the demo build> <folder of the tools>");
   process.exit(1);
 }
-await main(site, playwrightFolder);
+await main(site, toolsFolder);

@@ -46,19 +46,21 @@ jobs:
 
       # Chromium draws the slides of the sample videos in Noto Sans, and ffmpeg makes the videos.
       # Playwright goes in a folder of its own, outside the dependencies of albireo.
-      - name: Install ffmpeg, Noto Sans, and Playwright
+      # Playwright draws the pictures, pptxgenjs makes the PowerPoint file, and docx the Word
+      # document. They go in a folder of their own, outside the dependencies of albireo.
+      - name: Install ffmpeg, Noto Sans, Playwright, pptxgenjs, and docx
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-core
-          mkdir -p "$RUNNER_TEMP/playwright"
-          cd "$RUNNER_TEMP/playwright"
-          echo '{ "name": "demo-media", "private": true }' > package.json
-          pnpm add playwright@1.65.0
+          mkdir -p "$RUNNER_TEMP/demo-tools"
+          cd "$RUNNER_TEMP/demo-tools"
+          echo '{ "name": "demo-tools", "private": true }' > package.json
+          pnpm add playwright@1.65.0 pptxgenjs@4.0.1 docx@9.15.0
           pnpm exec playwright install --with-deps chromium
 
       # Short videos with their posters, the pictures of the people, and the attachments, under demo-dist/media.
       - name: Make the sample media
-        run: node scripts/demo-media.ts demo-dist "$RUNNER_TEMP/playwright"
+        run: node scripts/demo-media.ts demo-dist "$RUNNER_TEMP/demo-tools"
 
       # The poster and two frames of each video, and the pictures of the people, kept with the
       # run apart from the site, to look at them without playing the videos.

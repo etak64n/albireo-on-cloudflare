@@ -220,11 +220,12 @@ export function createLibrary(now: Date): DemoLibrary {
       video("pricing", {
         title: "Product update: yearly prices",
         description:
-          "The pricing page has a yearly switch now. Billed yearly, Team costs $10 and Business $20 for each uploader a month. Recorded on the staging site.",
+          "The pricing page has a yearly switch now. Billed yearly, Team costs $10 and Business $20 for each uploader a month. Recorded on the staging site. The answers for the support team are attached.",
         createdAt: ago(8, 6),
         uploaderId: PEOPLE.alex,
         media: "update-pricing",
         series: ["updates", 2],
+        attachments: ["pricingFaq"],
       }),
       video("beta", {
         title: "Product update: what the beta teams asked for",
@@ -238,7 +239,7 @@ export function createLibrary(now: Date): DemoLibrary {
       video("kickoff", {
         title: "Q4 kickoff: the slides",
         description:
-          "The slides of the all-hands, for the screens in the office: where Q3 landed, and three goals for Q4. The PDF is attached.",
+          "The slides of the all-hands, for the screens in the office: where Q3 landed, and three goals for Q4. The PowerPoint file is attached.",
         createdAt: ago(38, 2),
         uploaderId: PEOPLE.priya,
         media: "q4-kickoff",

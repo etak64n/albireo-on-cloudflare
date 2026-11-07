@@ -661,6 +661,35 @@ export function monogram(picture: PictureFile, name: string): string {
 }
 
 /** The text of the notes that go with some videos. */
+/** Questions and answers, with a table, for a Word document. */
+export interface Answers {
+  title: string;
+  author: string;
+  intro: string;
+  table: readonly (readonly string[])[];
+  tableNote: string;
+  questions: readonly (readonly [string, string])[];
+}
+
+/** The answers about the yearly prices for the support team, which go with the video of the pricing page. */
+export const PRICING_FAQ: Answers = {
+  title: "Yearly prices: answers for the support team",
+  author: "Alex Morgan",
+  intro: "The pricing page has a switch between monthly and yearly prices. Everyone can watch, and teams pay for the people who upload.",
+  table: [
+    ["Plan", "Monthly", "Billed yearly"],
+    ["Starter", "$0", "$0"],
+    ["Team", "$12", "$10"],
+    ["Business", "$24", "$20"],
+  ],
+  tableNote: "Prices are for each uploader a month. Starter is free for up to 3 uploaders.",
+  questions: [
+    ["How much does a team save with yearly prices?", "Two months: billed yearly, Team costs $120 for each uploader instead of $144."],
+    ["Does anyone pay to watch?", "No. Everyone can watch, and only the people who upload count."],
+    ["Where can I try the switch?", "On the staging site, at staging.example.com/pricing."],
+  ],
+};
+
 export const NOTES = {
   timeline: `# Incident review: object storage latency
 
