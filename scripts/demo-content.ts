@@ -4,6 +4,7 @@
 // one calm design: white pages, the navy and the gold of albireo as accents, Noto Sans,
 // and wide margins. Nothing shows a person.
 
+import type { Lesson } from "../src/demo/lessons.ts";
 import type { PictureFile } from "../src/demo/media.ts";
 
 const NAVY = "#01153d";
@@ -46,6 +47,7 @@ h2 { margin-top: 14px; font-size: 44px; line-height: 1.15; font-weight: 700; let
 .points li { position: relative; padding-left: 42px; font-size: 30px; line-height: 1.35; color: ${INK}; }
 .points li::before { content: ""; position: absolute; left: 0; top: 14px; width: 14px; height: 14px; border-radius: 50%; background: ${GOLD}; }
 .chart { display: block; margin-top: 34px; }
+.code { margin-top: 44px; max-width: 1056px; padding: 30px 38px; border: 2px solid ${LINE}; border-radius: 16px; background: ${CLOUD}; font-family: "Noto Sans Mono", "DejaVu Sans Mono", monospace; font-size: 28px; line-height: 1.5; color: ${NAVY}; white-space: pre; }
 .figure { margin-top: 26px; font-size: 168px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; color: ${NAVY}; }
 .figure + .lead { margin-top: 18px; }
 .swatches { margin-top: 44px; display: flex; gap: 40px; }
@@ -113,6 +115,16 @@ function points(lines: readonly string[]): string {
 function section(deck: Deck, slide: Slide, index: number): string {
   const foot = slide.className === "content" ? `<footer class="foot"><span>${deck.name}</span><span>${index + 1}</span></footer>` : "";
   return `<section class="slide ${slide.className}">${slide.html}${foot}</section>`;
+}
+
+/** The two slides of a lesson of SQL in 20 lessons: its title, then its query. */
+export function lessonDeck(lesson: Lesson, number: number): Deck {
+  const kicker = `SQL lesson ${number}`;
+  const code = lesson.code.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return {
+    name: `SQL in 20 lessons  ·  ${number}`,
+    slides: [cover(kicker, lesson.title, lesson.lead, "Kenji Ito"), content(kicker, lesson.title, `<pre class="code">${code}</pre>`)],
+  };
 }
 
 /** Each slide of a deck as a page of its own, to draw as a picture. */

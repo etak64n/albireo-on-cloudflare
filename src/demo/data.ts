@@ -7,6 +7,7 @@
 // length of its file (media.ts), so the times in the comments stay within it.
 
 import type { Language, Session, SignIn } from "../../shared/api.ts";
+import { LESSONS, LESSONS_SERIES_ID } from "./lessons.ts";
 import type { AttachmentFile, PictureFile, VideoFile } from "./media.ts";
 
 export interface DemoPerson {
@@ -286,6 +287,21 @@ export function createLibrary(now: Date): DemoLibrary {
         uploaderId: PEOPLE.priya,
         media: "breathing-break",
       }),
+      // SQL in 20 lessons, older than the rest of the library: a lesson every two days.
+      ...LESSONS.map(
+        (lesson, index): DemoVideo => ({
+          id: lesson.id,
+          title: `SQL lesson ${index + 1}: ${lesson.title}`,
+          description: lesson.lead,
+          createdAt: ago(90 - index * 2, 4),
+          updatedAt: ago(90 - index * 2, 4),
+          uploaderId: PEOPLE.kenji,
+          seriesId: LESSONS_SERIES_ID,
+          seriesPosition: index + 1,
+          media: lesson.file,
+          attachments: [],
+        }),
+      ),
     ],
     series: [
       {
@@ -304,6 +320,14 @@ export function createLibrary(now: Date): DemoLibrary {
         ownerId: PEOPLE.alex,
         createdAt: ago(15, 6),
         updatedAt: ago(1, 6),
+      },
+      {
+        id: LESSONS_SERIES_ID,
+        title: "SQL in 20 lessons",
+        description: "Twenty short lessons of SQL, one idea each, with the query on the slide. Each builds on the one before, so watch them in order.",
+        ownerId: PEOPLE.kenji,
+        createdAt: ago(91),
+        updatedAt: ago(52, 4),
       },
     ],
     comments: [

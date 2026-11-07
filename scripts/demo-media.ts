@@ -16,7 +16,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createLibrary } from "../src/demo/data.ts";
 import { ATTACHMENT_FILES, MEDIA_PATHS, PICTURE_FILES, VIDEO_SECONDS, type AttachmentFile, type VideoFile } from "../src/demo/media.ts";
-import { CHECKLIST_SCREENS, DECKS, NOTES, PRICING_FAQ, SCREENS, deckPage, monogram, slidePages, type Answers, type DeckName } from "./demo-content.ts";
+import { LESSONS } from "../src/demo/lessons.ts";
+import { CHECKLIST_SCREENS, DECKS, NOTES, PRICING_FAQ, SCREENS, deckPage, lessonDeck, monogram, slidePages, type Answers, type DeckName } from "./demo-content.ts";
 
 const WIDTH = 1280;
 const HEIGHT = 720;
@@ -73,6 +74,7 @@ interface Docx {
 // document that scrolls under the bar of its app, or a loop that ffmpeg draws itself.
 type Picture =
   | { kind: "slides"; deck: DeckName }
+  | { kind: "lesson"; index: number }
   | { kind: "screens"; screens: readonly string[] }
   | { kind: "scroll"; bar: string; document: string }
   | { kind: "loop"; graph: () => string };
@@ -114,7 +116,8 @@ function breathingBreak(): string {
   ].join(";");
 }
 
-const VIDEOS: Record<VideoFile, SampleVideo> = {
+// The sample videos other than the lessons of SQL in 20 lessons.
+const SAMPLE_VIDEOS: Record<Exclude<VideoFile, `sql-${string}`>, SampleVideo> = {
   "tip-colors": { picture: { kind: "slides", deck: "tipColors" }, posterAt: 4.3 },
   "tip-type": { picture: { kind: "slides", deck: "tipType" }, posterAt: 4.6 },
   "tip-charts": { picture: { kind: "slides", deck: "tipCharts" }, posterAt: 4.3 },
@@ -128,6 +131,15 @@ const VIDEOS: Record<VideoFile, SampleVideo> = {
   "lobby-evening": { picture: { kind: "loop", graph: lobbyEvening }, posterAt: 6 },
   "breathing-break": { picture: { kind: "loop", graph: breathingBreak }, posterAt: 4 },
 };
+
+// The lessons of SQL in 20 lessons, each with its title and its query.
+const LESSON_VIDEOS = Object.fromEntries(
+  LESSONS.map((lesson, index): [VideoFile, SampleVideo] => [lesson.file, { picture: { kind: "lesson", index }, posterAt: 1.5 }]),
+);
+
+const VIDEOS = { ...SAMPLE_VIDEOS, ...LESSON_VIDEOS } as Record<VideoFile, SampleVideo>;
+const unmade = Object.keys(VIDEO_SECONDS).filter((name) => !(name in VIDEOS));
+if (unmade.length > 0) throw new Error(`Nothing makes the videos ${unmade.join(", ")}.`);
 
 const VIDEO_NAMES = Object.keys(VIDEOS) as VideoFile[];
 
@@ -313,6 +325,11 @@ async function main(site: string, toolsFolder: string): Promise<void> {
     const { picture } = VIDEOS[name];
     const into = (index: number) => join(work, `${name}-${index + 1}.png`);
     if (picture.kind === "slides") pictures.set(name, await draw(page, slidePages(DECKS[picture.deck]), frame, into));
+    if (picture.kind === "lesson") {
+      const lesson = LESSONS[picture.index];
+      if (lesson === undefined) throw new Error(`SQL in 20 lessons has no lesson ${picture.index + 1}.`);
+      pictures.set(name, await draw(page, slidePages(lessonDeck(lesson, picture.index + 1)), frame, into));
+    }
     if (picture.kind === "screens") pictures.set(name, await draw(page, picture.screens, frame, into));
     if (picture.kind === "scroll") {
       const [bar = ""] = await draw(page, [picture.bar], { width: WIDTH, height: DOCUMENT_BAR_HEIGHT }, () => join(work, `${name}-bar.png`));
@@ -357,7 +374,7 @@ async function main(site: string, toolsFolder: string): Promise<void> {
     const path = MEDIA_PATHS.video(name);
     const output = prepare(site, path);
     console.log(`Making ${name}`);
-    if (picture.kind === "slides") slideshow(drawn, seconds, SLIDE_FADE, output, STILL);
+    if (picture.kind === "slides" || picture.kind === "lesson") slideshow(drawn, seconds, SLIDE_FADE, output, STILL);
     if (picture.kind === "screens") slideshow(drawn, seconds, SCREEN_FADE, output, SCREEN);
     if (picture.kind === "scroll") scroll(drawn[0] ?? "", drawn[1] ?? "", seconds, output);
     if (picture.kind === "loop") encode([], picture.graph(), "[a]", seconds, output, LOOP);

@@ -17,6 +17,27 @@ export const VIDEO_SECONDS = {
   "uploads-diagram": 12,
   "lobby-evening": 12,
   "breathing-break": 16,
+  // SQL in 20 lessons (lessons.ts): the title of each lesson, then its query.
+  "sql-01": 8,
+  "sql-02": 8,
+  "sql-03": 8,
+  "sql-04": 8,
+  "sql-05": 8,
+  "sql-06": 8,
+  "sql-07": 8,
+  "sql-08": 8,
+  "sql-09": 8,
+  "sql-10": 8,
+  "sql-11": 8,
+  "sql-12": 8,
+  "sql-13": 8,
+  "sql-14": 8,
+  "sql-15": 8,
+  "sql-16": 8,
+  "sql-17": 8,
+  "sql-18": 8,
+  "sql-19": 8,
+  "sql-20": 8,
 } as const;
 
 export type VideoFile = keyof typeof VIDEO_SECONDS;
