@@ -124,9 +124,9 @@ export function SeriesPage({ id }: { id: string }) {
               onRemove={(episode) => void change(api.removeEpisode(series.id, episode.id), t.toast.removedFrom(series.title))}
             />
           )}
-          {/* Uploads join the series after its last episode, so the button comes after the episodes. */}
+          {/* Uploads join the series after its last episode, so the button comes after the episodes, at the right. */}
           {series.episodes.length > 0 && (
-            <div>
+            <div className="flex justify-end">
               <UploadButton seriesId={series.id} />
             </div>
           )}
