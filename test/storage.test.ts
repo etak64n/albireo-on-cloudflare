@@ -113,6 +113,14 @@ describe("S3ObjectStore requests", () => {
     stubFetch(new Response(null, { status: 200, headers: { "content-length": "2048" } }));
     await expect(new S3ObjectStore(storage, 600).headObject("thumbnails/abc.jpg")).resolves.toEqual({ size: 2048 });
   });
+
+  it("keeps its requests out of the cache, which would send a HEAD of a video as a GET", async () => {
+    const fetchMock = stubFetch(new Response(null, { status: 200, headers: { "content-length": "2048" } }));
+    await new S3ObjectStore(storage, 600).headObject("videos/abc/original.mp4");
+    const request = fetchMock.mock.calls[0]?.[0];
+    expect(request?.method).toBe("HEAD");
+    expect(request?.cache).toBe("no-store");
+  });
 });
 
 describe("XML", () => {

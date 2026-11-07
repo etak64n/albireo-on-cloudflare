@@ -121,9 +121,12 @@ export class S3ObjectStore implements ObjectStore {
   }
 
   // A request that cannot reach the storage service is a storage failure, not a bug in the Worker.
+  // Requests skip the cache of Cloudflare: through it, a HEAD of a key with an extension that
+  // Cloudflare caches, such as .mp4 or .jpg, reaches the storage service as a GET, which the
+  // signature for HEAD does not match, so the storage service answers 403.
   async #send(operation: string, url: URL, init: RequestInit): Promise<Response> {
     try {
-      return await this.#client.fetch(url.toString(), init);
+      return await this.#client.fetch(url.toString(), { ...init, cache: "no-store" });
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
       throw new StorageError(`${operation} could not reach the storage service at ${url.origin}: ${reason}`);
