@@ -1,8 +1,8 @@
 # Records the tour of the demo that the README shows at its top, from the demo on GitHub
-# Pages: the home page, a video that plays, the slides attached to it, a comment typed
-# and posted with a time that plays the video from there, and a search, zooming in on the
-# details, with the logo at its start and its end. Run it by hand after the screens change,
-# then put the artifact at images/tour.gif.
+# Pages: the home page, a video that plays, files of several kinds attached to it in the
+# preview, a comment typed and posted with a time that plays the video from there, and a
+# search, zooming in on the details, with the logo at its start and its end. Run it by
+# hand after the screens change, then put the artifact at images/tour.gif.
 name: Tour
 
 on:
@@ -48,6 +48,8 @@ jobs:
           DEMO_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
           # A word of the titles of the sample videos, which the search of the tour finds.
           TOUR_QUERY: design
+          # The files that the tour previews, of the featured video, one of each kind.
+          TOUR_FILES: label-the-data.pdf label-the-data.pptx bar-chart.png uploads-by-team.csv chart-checklist.md
           # The comment that the tour posts. Its time becomes a link in the posted comment.
           TOUR_COMMENT: Trying this in our weekly report, starting with the chart at 0:05.
         run: |
@@ -164,19 +166,22 @@ jobs:
             await pause(4000);
           });
 
-          // The slides attached to the video, in the preview over the page.
+          // Files of several kinds attached to the video, each in the preview over the page.
           await page.mouse.move(1340, 520, { steps: 15 });
           await scrollTo(page.getByRole("heading", { name: "Attachments" }));
-          const preview = page.getByRole("button", { name: "Preview" }).first();
-          await pointAt(preview);
-          await pause(400);
-          await preview.click();
-          await page.getByRole("dialog").locator("canvas").first().waitFor();
-          await pause(1800);
-          moments.push(seconds());
-          await pause(1800);
-          await page.keyboard.press("Escape");
-          await pause(800);
+          for (const fileName of process.env.TOUR_FILES.split(" ")) {
+            const preview = page.locator("li").filter({ hasText: fileName }).getByRole("button", { name: "Preview" });
+            await pointAt(preview, 20);
+            await pause(300);
+            await preview.click();
+            await page.getByRole("dialog").waitFor();
+            await page.waitForLoadState("networkidle");
+            await pause(1300);
+            moments.push(seconds());
+            await pause(1300);
+            await page.keyboard.press("Escape");
+            await pause(600);
+          }
 
           // A comment, typed and posted. Its time becomes a link, which plays the video from there.
           await scrollTo(page.getByRole("heading", { name: "Comments" }));
