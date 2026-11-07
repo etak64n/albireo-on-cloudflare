@@ -7,6 +7,7 @@ description: "Stars and comments under each video."
 
 Each person gives a video 1 to 5 stars, and can change the rating or clear it (worker/ratings.ts, src/components/StarRating.tsx).
 Once someone has rated a video, its average and the number of ratings show beside the stars, such as `4.0 (3)`.
+A change shows at once, with the average and the number counted in the browser, and saves behind (src/lib/rating.ts). When the API answers, its numbers, which count everyone's stars, take their place; when it fails, the rating goes back and a message says why.
 
 ## Comments
 

@@ -1,6 +1,6 @@
 import { Play } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from "react";
-import { ID_PATTERN, type Episode, type PlaylistDetail, type VideoDetail, type VideoSeries, type VideoSummary } from "../../shared/api.ts";
+import { ID_PATTERN, type Episode, type PlaylistDetail, type VideoDetail, type VideoRating, type VideoSeries, type VideoSummary } from "../../shared/api.ts";
 import { ApiError, api } from "../api.ts";
 import { Attachments } from "../components/Attachments.tsx";
 import { Avatar } from "../components/Avatar.tsx";
@@ -141,6 +141,9 @@ export function VideoPage({ id }: { id: string }) {
     window.scrollTo({ top: 0, behavior: calm ? "auto" : "smooth" });
   }
 
+  // The stars change twice, at once and when the API answers, so each change takes the video as it is then.
+  const rate = (rating: VideoRating) => setVideo((current) => current && { ...current, rating });
+
   function playNext() {
     const inPlaylist = playlist.playlist?.videos ?? [];
     const index = inPlaylist.findIndex((item) => item.id === id);
@@ -174,13 +177,13 @@ export function VideoPage({ id }: { id: string }) {
               <VideoTitle video={video} />
             </div>
             <div className="@4xl:hidden">
-              <VideoAside video={video} episodes={episodes} playlistId={playlistId} playlist={playlist} onChange={setVideo} layout="row" />
+              <VideoAside video={video} episodes={episodes} playlistId={playlistId} playlist={playlist} onRated={rate} layout="row" />
             </div>
             <Attachments video={video} onChange={(attachments) => setVideo((current) => current && { ...current, attachments })} />
             <Comments videoId={video.id} durationSec={video.durationSec} onSeek={seek} />
           </div>
           <aside className="hidden @4xl:block">
-            <VideoAside video={video} episodes={episodes} playlistId={playlistId} playlist={playlist} onChange={setVideo} layout="column" />
+            <VideoAside video={video} episodes={episodes} playlistId={playlistId} playlist={playlist} onRated={rate} layout="column" />
           </aside>
         </div>
       )}
@@ -220,14 +223,15 @@ function VideoAside({
   episodes,
   playlistId,
   playlist,
-  onChange,
+  onRated,
   layout,
 }: {
   video: VideoDetail;
   episodes: SeriesEpisodes;
   playlistId: string | null;
   playlist: LoadedPlaylist;
-  onChange: (video: VideoDetail) => void;
+  /** Takes the rating that the stars show now, at once and again when the API answers. */
+  onRated: (rating: VideoRating) => void;
   layout: "column" | "row";
 }) {
   const t = useT();
@@ -249,7 +253,7 @@ function VideoAside({
     ...(video.width === null || video.height === null
       ? []
       : [{ label: t.video.resolution, value: <span className="numeric">{`${video.width}×${video.height}`}</span> }]),
-    { label: t.video.rating, value: <StarRating videoId={video.id} rating={video.rating} onRated={(rating) => onChange({ ...video, rating })} /> },
+    { label: t.video.rating, wide: true, value: <StarRating videoId={video.id} rating={video.rating} onRated={onRated} /> },
   ];
   return (
     <div className={layout === "column" ? "grid content-start gap-10" : "grid content-start gap-8"}>

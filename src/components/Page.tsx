@@ -2,6 +2,7 @@
 // list of details.
 
 import type { ReactNode } from "react";
+import { cn } from "../lib/utils.ts";
 
 /** The heading of a list page, with the actions of the whole page on its right, over a line. */
 export function PageHeader({ title, actions }: { title: string; actions?: ReactNode }) {
@@ -30,11 +31,18 @@ export function Section({ title, actions, children }: { title: string; actions?:
  * Facts of one thing, each as its name and the value under it: one under another in a
  * narrow column, or side by side in rows across a page.
  */
-export function DetailList({ items, layout = "column" }: { items: { label: string; value: ReactNode }[]; layout?: "column" | "row" }) {
+export function DetailList({
+  items,
+  layout = "column",
+}: {
+  /** wide: in rows, the fact takes two columns, as the stars of a rating need. */
+  items: { label: string; value: ReactNode; wide?: boolean }[];
+  layout?: "column" | "row";
+}) {
   return (
     <dl className={layout === "column" ? "grid gap-4" : "grid grid-cols-2 gap-x-8 gap-y-4 @xl:grid-cols-3 @3xl:grid-cols-5"}>
       {items.map((item) => (
-        <div key={item.label} className="grid gap-1">
+        <div key={item.label} className={cn("grid gap-1", layout === "row" && item.wide === true && "col-span-2")}>
           <dt className="text-sm font-bold text-strong">{item.label}</dt>
           <dd className="text-sm text-label">{item.value}</dd>
         </div>
