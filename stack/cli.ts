@@ -1,20 +1,24 @@
 // `pnpm stack:deploy` and `pnpm stack:delete`: create, update, or delete every
 // Cloudflare resource of this albireo deployment. Sign in with `cf auth login`
 // first. The settings come from albireo.config.ts and the storage keys from
-// .env.production.
+// .env.production. The deploy first checks that the storage keys may do what
+// albireo does in the bucket (stack/storage-check.ts).
 //
 //   pnpm stack:deploy
 //   pnpm stack:delete [--confirm <stack name>]
 
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { validateSettings, type AlbireoSettings } from "../config/settings.ts";
+import { S3ObjectStore } from "../worker/storage.ts";
 import { projectCf } from "./cf.ts";
 import { parseEnvFile } from "./env-file.ts";
-import { deleteStack, deployStack, describe, stackResources, STACK_TAG, type SecretsFile } from "./stack.ts";
+import { deleteStack, deployStack, describe, stackResources, STACK_TAG, type SecretsFile, type StackSecrets } from "./stack.ts";
+import { missingPermissionsMessage, missingStoragePermissions } from "./storage-check.ts";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 
@@ -36,6 +40,7 @@ async function main(args: string[]): Promise<void> {
       throw new Error("S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY in .env.production must hold the keys of the production storage.");
     }
     console.log(`Deploying the stack ${settings.workerName}.`);
+    await checkStorageKeys(settings, { s3AccessKeyId, s3SecretAccessKey });
     deployStack({ settings, secrets: { s3AccessKeyId, s3SecretAccessKey }, cf, log, writeSecretsFile });
     console.log(`\nalbireo runs at https://${settings.production.domain}/`);
     return;
@@ -62,6 +67,25 @@ async function main(args: string[]): Promise<void> {
   console.log("\nDelete these yourself if you no longer need them:");
   console.log(`  The videos in the bucket ${storage.bucket} at ${storage.endpoint}, and its access keys in .env.production`);
   for (const other of others) console.log(`  ${other}, which carries the tag of the stack but is not a resource that albireo creates`);
+}
+
+/** Stops the deploy before it changes anything when the storage keys may not do what albireo does in the bucket. */
+async function checkStorageKeys(settings: AlbireoSettings, secrets: StackSecrets): Promise<void> {
+  const storage = settings.production.storage;
+  const store = new S3ObjectStore(
+    {
+      endpoint: storage.endpoint,
+      region: storage.region,
+      bucket: storage.bucket,
+      urlStyle: storage.urlStyle,
+      accessKeyId: secrets.s3AccessKeyId,
+      secretAccessKey: secrets.s3SecretAccessKey,
+    },
+    600,
+  );
+  const missing = await missingStoragePermissions(store, (url, init) => fetch(url, init), randomUUID());
+  if (missing.length > 0) throw new Error(missingPermissionsMessage(storage.bucket, missing));
+  console.log(`Bucket ${storage.bucket}: the access key reads, writes, and deletes objects, and uploads videos in parts`);
 }
 
 async function readSettings(): Promise<AlbireoSettings> {

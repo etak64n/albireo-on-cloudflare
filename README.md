@@ -199,6 +199,18 @@ S3_ACCESS_KEY_ID=your-access-key-id
 S3_SECRET_ACCESS_KEY=your-secret-access-key
 ```
 
+Give the access key these permissions on the objects of that bucket, and on no other bucket.
+
+| Permission | Why albireo needs it |
+| --- | --- |
+| **Read objects** | Videos, thumbnails, pictures, and attachments play and open from signed URLs. |
+| **Write objects** | Thumbnails, pictures, and attachments upload to signed URLs. |
+| **Multipart uploads** | Videos upload in parts, and a canceled upload is aborted. |
+| **Delete objects** | Deleting a video, an attachment, or a picture deletes its file. |
+
+The key needs no permission on the bucket itself: albireo never lists the bucket, and never creates or deletes buckets.
+Before it changes anything, `pnpm stack:deploy` tries each permission on keys under `albireo-check/`, and stops and names the permissions that the key lacks.
+
 ### 5. Deploy
 
 Sign the Cloudflare CLI in to your account and deploy the stack.

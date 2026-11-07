@@ -17,9 +17,10 @@ You need four things.
 CORS (Cross-Origin Resource Sharing) is the browser rule that decides which other sites a page may send requests to.
 The bucket needs CORS settings because the albireo page uploads files to the bucket and reads attachments from it, and the bucket has another origin.
 
-Give the access key permission to read, write, and delete objects in this bucket only.
+Give the access key permission to read, write, and delete objects in this bucket only, and to upload objects in parts.
 The Worker signs reads, uploads, and multipart operations with the key, and deletes the files of a video, an attachment, or a picture that someone deletes.
-The key needs no permission over the bucket itself, such as deleting the bucket.
+The key needs no permission over the bucket itself: albireo never lists the bucket, and never creates or deletes buckets.
+`pnpm stack:deploy` checks these permissions before it changes anything (stack/storage-check.ts).
 
 ## The stack
 
@@ -141,12 +142,13 @@ Step 5: deploy the stack.
 pnpm stack:deploy
 ```
 
-`pnpm stack:deploy` does these things in order (stack/stack.ts).
+`pnpm stack:deploy` does these things in order (stack/cli.ts, stack/stack.ts).
 
-1. Finds the D1 database of `database.name`, or creates it, and applies the files in migrations/ to it
-2. Creates the Access application of `production.domain`, or updates it to the settings
-3. Deploys the Worker with the keys of `.env.production`, the AUD tag of the Access application, and the ID of the database
-4. Tags each resource with the name of the stack
+1. Checks that the access key of `.env.production` may delete, write, and read objects in the bucket and upload objects in parts. It tries each on keys under `albireo-check/` and deletes what it writes. When the key lacks a permission, the deploy stops, names the permissions to give, and changes nothing.
+2. Finds the D1 database of `database.name`, or creates it, and applies the files in migrations/ to it
+3. Creates the Access application of `production.domain`, or updates it to the settings
+4. Deploys the Worker with the keys of `.env.production`, the AUD tag of the Access application, and the ID of the database
+5. Tags each resource with the name of the stack
 
 The Access application exists before the Worker serves the domain, so the domain is never served without Access.
 `cf deploy` attaches `production.domain` to the Worker (cloudflare.config.ts, `domains`).
