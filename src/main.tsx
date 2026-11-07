@@ -5,8 +5,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App.tsx";
 
-// The logo of the theme is also the icon of the browser tab.
-document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.setAttribute("href", appearance.logo);
+// The logos of the themes are also the icon of the browser tab.
+document.querySelector<HTMLLinkElement>('link[rel="icon"]')?.setAttribute("href", appearance.favicon);
 
 const root = document.getElementById("root");
 if (root === null) throw new Error("index.html has no element with the ID root.");

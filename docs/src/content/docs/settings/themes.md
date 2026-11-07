@@ -20,7 +20,7 @@ The build puts theme.css of the dark theme inside a media query for dark mode, s
 - Shadows of what floats over the page: `--theme-shadow-tooltip` and `--theme-shadow-popover`
 - Fonts: `--theme-font` and `--theme-font-mono`
 
-The sidebar shows the logo of the theme that matches the mode, and the logo of the light theme also becomes the favicon (src/main.tsx).
+The sidebar shows the logo of the theme that matches the mode. The icon of the browser tab holds both logos and shows the one that matches the mode of the browser, since a dark tab hides a dark logo (vite.config.ts).
 When either file is missing, `cf dev` and the build stop with an error, so a typo in the path does not ship an unstyled library (vite.config.ts).
 
 To make a theme of your own, copy themes/light to a folder of yours, change the values and the logo, and point `appearance.themes.light` or `appearance.themes.dark` at the folder.

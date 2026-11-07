@@ -32,16 +32,32 @@ export function albireoAppearance(appearance: AppearanceSettings): Plugin {
         return `@media (prefers-color-scheme: dark) {\n${readFileSync(darkCss, "utf8")}\n}\n`;
       }
       if (id !== resolvedId) return undefined;
+      this.addWatchFile(resolve(light, "logo.svg"));
+      this.addWatchFile(resolve(dark, "logo.svg"));
+      const favicon = faviconOf(resolve(light, "logo.svg"), resolve(dark, "logo.svg"));
       return [
         `import ${JSON.stringify(resolve(light, "theme.css"))};`,
         `import ${JSON.stringify(DARK_THEME_MODULE)};`,
         `import logo from ${JSON.stringify(resolve(light, "logo.svg"))};`,
         `import darkLogo from ${JSON.stringify(resolve(dark, "logo.svg"))};`,
-        `export default { siteName: ${JSON.stringify(appearance.siteName)}, logo, darkLogo };`,
+        `export default { siteName: ${JSON.stringify(appearance.siteName)}, logo, darkLogo, favicon: ${JSON.stringify(favicon)} };`,
       ].join("\n");
     },
     transformIndexHtml: (html) => html.replace("<title>albireo</title>", `<title>${escapeHtml(appearance.siteName)}</title>`),
   };
+}
+
+// The icon of the browser tab: the logo of the light theme, and the logo of the dark theme
+// while the browser is in dark mode, since a dark tab hides a dark logo. An icon is an
+// image, which loads nothing from outside, so both logos go inside it as data.
+function faviconOf(lightLogo: string, darkLogo: string): string {
+  const logo = (path: string, mode: string) =>
+    `<image class="${mode}" width="64" height="64" href="data:image/svg+xml;base64,${readFileSync(path).toString("base64")}"/>`;
+  const svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+    "<style>.dark{display:none}@media (prefers-color-scheme: dark){.light{display:none}.dark{display:inline}}</style>" +
+    `${logo(lightLogo, "light")}${logo(darkLogo, "dark")}</svg>`;
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
 // The theme folder of a mode of the device, after checking that it has every file of a theme.
