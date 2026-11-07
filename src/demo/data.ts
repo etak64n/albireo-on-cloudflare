@@ -200,12 +200,12 @@ export function createLibrary(now: Date): DemoLibrary {
       video("tipCharts", {
         title: "Design tip 3: label the data, not the axis",
         description:
-          "Write the value on the bar, drop the gridlines, and color only the bar that matters. The slides are attached as a PDF.",
+          "Write the value on the bar, drop the gridlines, and color only the bar that matters. The slides, the chart, its data, a checklist, and the colors are attached.",
         createdAt: ago(6, 3),
         uploaderId: PEOPLE.mina,
         media: "tip-charts",
         series: ["tips", 3],
-        attachments: ["chartSlides"],
+        attachments: ["chartSlides", "chartPptx", "chartImage", "chartData", "chartChecklist", "chartColors"],
       }),
       video("checklist", {
         title: "Product update: the launch checklist",

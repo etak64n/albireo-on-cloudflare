@@ -131,17 +131,24 @@ const VIDEOS: Record<VideoFile, SampleVideo> = {
 
 const VIDEO_NAMES = Object.keys(VIDEOS) as VideoFile[];
 
-// Two decks also go with their videos: one as a PDF of its slides, and one as a
-// PowerPoint file with a picture of each slide. The answers about the prices are a Word
-// document, and the notes are text.
+// Decks also go with their videos, as a PDF of their slides or as a PowerPoint file with a
+// picture of each slide. Design tip 3 has files of many kinds, to try each viewer of the
+// preview: its slides in both, its chart as a picture, and its data, checklist, and colors
+// as text. The answers about the prices are a Word document, which has no preview.
 type AttachmentSource =
   | { pdf: DeckName }
   | { pptx: DeckName; title: string; author: string }
+  | { png: { deck: DeckName; slide: number } }
   | { docx: Answers }
   | { text: string };
 
 const ATTACHMENTS: Record<AttachmentFile, AttachmentSource> = {
   chartSlides: { pdf: "tipCharts" },
+  chartPptx: { pptx: "tipCharts", title: "Design tip 3: label the data, not the axis", author: "Mina Sato" },
+  chartImage: { png: { deck: "tipCharts", slide: 1 } },
+  chartData: { text: NOTES.chartData },
+  chartChecklist: { text: NOTES.chartChecklist },
+  chartColors: { text: NOTES.chartColors },
   kickoffSlides: { pptx: "kickoff", title: "Q4 kickoff", author: "Priya Nair" },
   pricingFaq: { docx: PRICING_FAQ },
   timeline: { text: NOTES.timeline },
@@ -323,6 +330,10 @@ async function main(site: string, toolsFolder: string): Promise<void> {
     } else if ("pptx" in attachment) {
       const slides = await draw(page, slidePages(DECKS[attachment.pptx]), frame, (index) => join(work, `${key}-${index + 1}.jpg`), { jpeg: true });
       await powerPoint(PptxGen, slides, attachment, prepare(site, path));
+    } else if ("png" in attachment) {
+      const slide = slidePages(DECKS[attachment.png.deck])[attachment.png.slide];
+      if (slide === undefined) throw new Error(`The deck ${attachment.png.deck} has no slide ${attachment.png.slide}.`);
+      await draw(page, [slide], frame, () => prepare(site, path));
     } else {
       continue;
     }

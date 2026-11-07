@@ -691,6 +691,24 @@ export const PRICING_FAQ: Answers = {
 };
 
 export const NOTES = {
+  // The files that go with the chart of Design tip 3: its data, a checklist, and its colors.
+  chartData: `team,videos\n${TEAM_UPLOADS.map(({ label, value }) => `${label},${value}`).join("\n")}\n`,
+  chartChecklist: `# Before you share a chart
+
+From Design tip 3: label the data, not the axis.
+
+- [x] Write the value on each bar
+- [x] Drop the gridlines and the axis
+- [x] Color only the bar that matters
+- [ ] Say in the title what the chart shows
+
+| Part | Color |
+| --- | --- |
+| Bars | Navy \`${NAVY}\` |
+| The bar that matters | Gold \`${GOLD}\` |
+| Labels | Slate \`${SLATE}\` |
+`,
+  chartColors: `${JSON.stringify({ chart: "Videos uploaded by each team", colors: { bars: NAVY, highlight: GOLD, values: NAVY, labels: SLATE, baseline: LINE } }, null, 2)}\n`,
   timeline: `# Incident review: object storage latency
 
 Uploads and playback were slow for 47 minutes. No data was lost.

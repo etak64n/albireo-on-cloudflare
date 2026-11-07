@@ -29,6 +29,11 @@ export type PictureFile = (typeof PICTURE_FILES)[number];
 /** The attachments, with the type that albireo gives a file of that name. */
 export const ATTACHMENT_FILES = {
   chartSlides: { fileName: "label-the-data.pdf", contentType: "application/pdf" },
+  chartPptx: { fileName: "label-the-data.pptx", contentType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
+  chartImage: { fileName: "bar-chart.png", contentType: "image/png" },
+  chartData: { fileName: "uploads-by-team.csv", contentType: "text/csv; charset=utf-8" },
+  chartChecklist: { fileName: "chart-checklist.md", contentType: "text/markdown; charset=utf-8" },
+  chartColors: { fileName: "chart-colors.json", contentType: "application/json" },
   kickoffSlides: { fileName: "q4-kickoff.pptx", contentType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
   pricingFaq: { fileName: "pricing-faq.docx", contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
   timeline: { fileName: "timeline.md", contentType: "text/markdown; charset=utf-8" },
