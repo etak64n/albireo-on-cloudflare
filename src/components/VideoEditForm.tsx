@@ -1,4 +1,4 @@
-import { Pencil } from "lucide-react";
+import { Layers, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH, type SeriesSummary, type UpdateVideoRequest, type VideoDetail } from "../../shared/api.ts";
 import { api } from "../api.ts";
@@ -12,9 +12,9 @@ import { Select } from "./ui/select.tsx";
 import { useToast } from "./ui/toast.tsx";
 
 /**
- * The title and the description of a video on its page. Beside the title, Add to playlist puts
- * the video in the playlists of the signed-in person, and for the uploader of the video and
- * admins, a small pencil opens the edit page of the video.
+ * The title, the series, and the description of a video on its page. Beside the title, Add to
+ * playlist puts the video in the playlists of the signed-in person, and for the uploader of the
+ * video and admins, a small pencil opens the edit page of the video. The series leads to its page.
  */
 export function VideoTitle({ video }: { video: VideoDetail }) {
   const t = useT();
@@ -33,6 +33,13 @@ export function VideoTitle({ video }: { video: VideoDetail }) {
           )}
         </div>
       </div>
+      {video.series !== null && (
+        <Link to={`/series/${video.series.id}`} className="flex w-fit items-center gap-1.5 text-sm font-semibold text-accent hover:underline [&_svg]:size-4">
+          <Layers aria-hidden="true" />
+          {video.series.title}
+          <span className="font-normal text-label">· {t.video.episode(video.series.episode)}</span>
+        </Link>
+      )}
       {video.description && <p className="max-w-[75ch] text-sm leading-relaxed break-words whitespace-pre-wrap">{video.description}</p>}
     </header>
   );

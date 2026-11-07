@@ -151,7 +151,8 @@ async function sendPart(
   }
 }
 
-async function uploadThumbnail(videoId: string, thumbnail: Blob): Promise<VideoDetail> {
+/** Sends a new thumbnail of a video to the bucket, commits it, and returns the video with it. */
+export async function uploadThumbnail(videoId: string, thumbnail: Blob): Promise<VideoDetail> {
   const { url, contentType } = await api.thumbnailUpload(videoId);
   await put(url, thumbnail, contentType, new AbortController().signal, () => undefined);
   const { video } = await api.commitThumbnail(videoId);

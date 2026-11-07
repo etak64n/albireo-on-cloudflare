@@ -17,23 +17,16 @@ export function uploadPath(seriesId?: string): string {
 }
 
 /**
- * Opens the upload page. With a series, the page chooses that series for the videos. Beside
- * the title of a series, it narrows to its icon on small screens. Prominent, it is the primary
- * button with its label at every size.
+ * Opens the upload page. With a series, the page chooses that series for the videos.
+ * Prominent, it is the large primary button of a library that has no videos yet.
  */
 export function UploadButton({ prominent = false, seriesId }: { prominent?: boolean; seriesId?: string }) {
   const t = useT();
   return (
-    <Button
-      asChild
-      variant={prominent ? "primary" : "secondary"}
-      size={prominent ? "lg" : "md"}
-      className={prominent ? undefined : "max-md:w-7 max-md:px-0"}
-    >
+    <Button asChild variant={prominent ? "primary" : "secondary"} size={prominent ? "lg" : "md"}>
       <Link to={uploadPath(seriesId)}>
         <Upload aria-hidden="true" />
-        {/* On small screens the label leaves the button but stays the name of the link. */}
-        <span className={prominent ? undefined : "max-md:sr-only"}>{t.upload.upload}</span>
+        {t.upload.upload}
       </Link>
     </Button>
   );

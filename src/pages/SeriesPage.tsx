@@ -5,7 +5,7 @@ import { ApiError, api } from "../api.ts";
 import { Avatar } from "../components/Avatar.tsx";
 import { ConfirmDialog } from "../components/ConfirmDialog.tsx";
 import { EmptyLibrary } from "../components/EmptyLibrary.tsx";
-import { Breadcrumb, Section } from "../components/Page.tsx";
+import { Section } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { Thumbnail } from "../components/Thumbnail.tsx";
 import { Button } from "../components/ui/button.tsx";
@@ -77,7 +77,6 @@ export function SeriesPage({ id }: { id: string }) {
       ) : (
         <>
           <div className="grid gap-6">
-            <Breadcrumb to="/series">{t.common.series}</Breadcrumb>
             {editing ? (
               <SeriesEditForm
                 series={series}
@@ -98,7 +97,6 @@ export function SeriesPage({ id }: { id: string }) {
                       <h1 className="min-w-0 text-display font-bold break-words text-strong">{series.title}</h1>
                       <div className="mt-1 flex shrink-0 gap-2">
                         {/* A series without videos shows its own upload button below. */}
-                        {series.episodes.length > 0 && <UploadButton seriesId={series.id} />}
                         {series.canEdit && (
                           <>
                             <Button onClick={() => setEditing(true)}>{t.common.edit}</Button>
@@ -126,6 +124,12 @@ export function SeriesPage({ id }: { id: string }) {
               onRemove={(episode) => void change(api.removeEpisode(series.id, episode.id), t.toast.removedFrom(series.title))}
             />
           )}
+          {/* Uploads join the series after its last episode, so the button comes after the episodes. */}
+          {series.episodes.length > 0 && (
+            <div>
+              <UploadButton seriesId={series.id} />
+            </div>
+          )}
           <ConfirmDialog
             open={deleting}
             title={t.series.deleteQuestion}
@@ -151,7 +155,6 @@ function SeriesSkeleton() {
   return (
     <div className="grid gap-12" role="status" aria-label={t.common.loading}>
       <div className="grid gap-6">
-        <Skeleton className="h-5 w-20" />
         <div className="flex items-start gap-4">
           <Skeleton className="aspect-video w-[100px] shrink-0 rounded-sm" />
           <div className="grid flex-1 content-start gap-2">

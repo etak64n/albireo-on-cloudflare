@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import type { VideoDetail } from "../../shared/api.ts";
 import { ApiError, api } from "../api.ts";
 import { ConfirmDialog } from "../components/ConfirmDialog.tsx";
-import { Breadcrumb, PageHeader } from "../components/Page.tsx";
+import { PageHeader, Section } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
+import { ThumbnailEditor } from "../components/ThumbnailEditor.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { Skeleton } from "../components/ui/skeleton.tsx";
 import { useToast } from "../components/ui/toast.tsx";
@@ -16,10 +17,10 @@ import { forgetDeletedVideo } from "./HomePage.tsx";
 import { NotFoundPage } from "./NotFoundPage.tsx";
 
 /**
- * The edit page of a video: its title, its description, and its series, and the deletion of
- * the video. Only the uploader of the video and admins can change or delete the video, so only
- * they find the page; the API checks the same. Saving or canceling goes back to the video, and
- * deleting it goes to all videos.
+ * The edit page of a video: its title, its description, and its series beside its thumbnail,
+ * which a frame of the video can replace, and the deletion of the video. Only the uploader of
+ * the video and admins can change or delete the video, so only they find the page; the API
+ * checks the same. Saving or canceling goes back to the video, and deleting it goes to all videos.
  */
 export function VideoEditPage({ id }: { id: string }) {
   const [video, setVideo] = useState<VideoDetail | null>(null);
@@ -53,23 +54,32 @@ export function VideoEditPage({ id }: { id: string }) {
       {error !== null ? (
         <p className="error-box">{error instanceof Error ? error.message : String(error)}</p>
       ) : video === null ? (
-        <div className="grid gap-6" role="status" aria-label={t.common.loading}>
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-9 w-1/2" />
-          <Skeleton className="h-48" />
+        <div className="grid gap-8" role="status" aria-label={t.common.loading}>
+          <Skeleton className="h-9 w-1/3" />
+          <div className="grid gap-10 @3xl:grid-cols-[minmax(0,1fr)_360px]">
+            <Skeleton className="h-72" />
+            <Skeleton className="aspect-video" />
+          </div>
         </div>
       ) : (
-        <div className="grid gap-6">
-          <Breadcrumb to={`/videos/${video.id}`}>{video.title}</Breadcrumb>
+        <div className="grid gap-8">
           <PageHeader title={t.video.editVideo} actions={<Button onClick={() => setDeleting(true)}>{t.common.delete}</Button>} />
-          <VideoEditForm
-            video={video}
-            onSaved={() => {
-              toast.success(t.toast.saved);
-              back();
-            }}
-            onCancel={back}
-          />
+          {/* The details on the left, and the thumbnail beside them on wide pages or under them on narrow ones. */}
+          <div className="grid content-start gap-10 @3xl:grid-cols-[minmax(0,1fr)_360px]">
+            <Section title={t.video.details}>
+              <VideoEditForm
+                video={video}
+                onSaved={() => {
+                  toast.success(t.toast.saved);
+                  back();
+                }}
+                onCancel={back}
+              />
+            </Section>
+            <Section title={t.thumbnail.thumbnail}>
+              <ThumbnailEditor video={video} onChange={setVideo} />
+            </Section>
+          </div>
           <ConfirmDialog
             open={deleting}
             title={t.video.deleteQuestion}

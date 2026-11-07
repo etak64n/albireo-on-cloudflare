@@ -32,7 +32,6 @@ const en = {
     uploadedBy: "Uploaded by",
     date: "Date",
     length: "Length",
-    breadcrumb: "Breadcrumb",
     reload: "Reload",
   },
   shell: {
@@ -155,6 +154,13 @@ const en = {
     deleteQuestion: "Delete this series?",
     deleteKeepsVideos: "Its videos stay in the library, out of any series.",
   },
+  thumbnail: {
+    thumbnail: "Thumbnail",
+    chooseFrame: "Choose a frame",
+    useFrame: "Use this frame",
+    place: "Place in the video",
+    cannotRead: "The browser cannot read this video.",
+  },
   playlists: {
     playlist: "Playlist",
     owner: "Owner",
@@ -225,6 +231,7 @@ const en = {
     attached: (fileName: string) => `Attached ${fileName}`,
     removedFile: (fileName: string) => `Removed ${fileName}`,
     commentPosted: "Comment posted",
+    thumbnailChanged: "Thumbnail changed",
     commentDeleted: "Comment deleted",
   },
 };
@@ -255,7 +262,6 @@ const ja: Messages = {
     uploadedBy: "投稿者",
     date: "投稿日",
     length: "長さ",
-    breadcrumb: "パンくずリスト",
     reload: "再読み込み",
   },
   shell: {
@@ -377,6 +383,13 @@ const ja: Messages = {
     deleteQuestion: "このシリーズを削除しますか？",
     deleteKeepsVideos: "動画はシリーズから外れて、ライブラリに残ります。",
   },
+  thumbnail: {
+    thumbnail: "サムネイル",
+    chooseFrame: "場面を選ぶ",
+    useFrame: "この場面にする",
+    place: "動画の位置",
+    cannotRead: "ブラウザがこの動画を読めません。",
+  },
   playlists: {
     playlist: "再生リスト",
     owner: "作成者",
@@ -445,6 +458,7 @@ const ja: Messages = {
     attached: (fileName) => `${fileName} を添付しました`,
     removedFile: (fileName) => `${fileName} を削除しました`,
     commentPosted: "コメントを投稿しました",
+    thumbnailChanged: "サムネイルを変えました",
     commentDeleted: "コメントを削除しました",
   },
 };

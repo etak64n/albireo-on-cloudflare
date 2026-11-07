@@ -4,7 +4,7 @@ import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH, type PlaylistDetail, type Pla
 import { ApiError, api } from "../api.ts";
 import { Avatar } from "../components/Avatar.tsx";
 import { ConfirmDialog } from "../components/ConfirmDialog.tsx";
-import { Breadcrumb, Section } from "../components/Page.tsx";
+import { Section } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { Thumbnail } from "../components/Thumbnail.tsx";
 import { Button } from "../components/ui/button.tsx";
@@ -79,7 +79,6 @@ export function PlaylistPage({ id }: { id: string }) {
       ) : (
         <>
           <div className="grid gap-6">
-            <Breadcrumb to="/playlists">{t.common.playlists}</Breadcrumb>
             {editing ? (
               <PlaylistEditForm
                 playlist={playlist}
@@ -155,7 +154,6 @@ function PlaylistSkeleton() {
   return (
     <div className="grid gap-12" role="status" aria-label={t.common.loading}>
       <div className="grid gap-6">
-        <Skeleton className="h-5 w-20" />
         <div className="flex items-start gap-4">
           <Skeleton className="aspect-video w-[100px] shrink-0 rounded-sm" />
           <div className="grid flex-1 content-start gap-2">

@@ -5,7 +5,7 @@ import { ApiError, api } from "../api.ts";
 import { Attachments } from "../components/Attachments.tsx";
 import { Avatar } from "../components/Avatar.tsx";
 import { Comments } from "../components/Comments.tsx";
-import { Breadcrumb, DetailList, Section } from "../components/Page.tsx";
+import { DetailList, Section } from "../components/Page.tsx";
 import { Shell } from "../components/Shell.tsx";
 import { StarRating } from "../components/StarRating.tsx";
 import { Thumbnail } from "../components/Thumbnail.tsx";
@@ -165,13 +165,6 @@ export function VideoPage({ id }: { id: string }) {
         <div className="grid gap-10 @4xl:grid-cols-[minmax(0,1fr)_280px]">
           <div className="grid min-w-0 content-start gap-10">
             <div className="grid gap-6">
-              {playlist.playlist !== null ? (
-                <Breadcrumb to={`/playlists/${playlist.playlist.id}`}>{playlist.playlist.title}</Breadcrumb>
-              ) : video.series !== null ? (
-                <Breadcrumb to={`/series/${video.series.id}`}>{video.series.title}</Breadcrumb>
-              ) : (
-                <Breadcrumb to="/videos">{t.common.allVideos}</Breadcrumb>
-              )}
               {/* On phones the player spans the screen from edge to edge. */}
               <div className="-mx-4 sm:mx-0">
                 <Suspense fallback={<PlayerPlaceholder />}>
@@ -200,7 +193,6 @@ function VideoSkeleton() {
   return (
     <div className="grid gap-10 @4xl:grid-cols-[minmax(0,1fr)_280px]" role="status" aria-label={t.common.loading}>
       <div className="grid content-start gap-6">
-        <Skeleton className="h-5 w-24" />
         <PlayerPlaceholder />
         <Skeleton className="h-9 w-2/3" />
       </div>

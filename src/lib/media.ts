@@ -1,5 +1,6 @@
 // Reads the length and size of a video in the browser and captures a
-// thumbnail, so the Worker never has to decode video.
+// thumbnail, so the Worker never has to decode video. The edit page of a video
+// captures a thumbnail from the frame that its player shows (frameToJpeg).
 
 export interface VideoMetadata {
   durationSec: number | null;
@@ -46,17 +47,31 @@ async function captureThumbnail(video: HTMLVideoElement, durationSec: number | n
       video.currentTime = Math.min(durationSec * 0.1, 300);
       await seeked;
     }
-    const scale = Math.min(1, THUMBNAIL_WIDTH / width);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(width * scale);
-    canvas.height = Math.round(height * scale);
-    const context = canvas.getContext("2d");
-    if (context === null) return null;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", THUMBNAIL_QUALITY));
+    return await frameAsJpeg(video, width, height);
   } catch {
     return null;
   }
+}
+
+/**
+ * The frame that a video element shows, as a JPEG thumbnail, or null when the browser cannot
+ * draw it. A video from another origin needs crossOrigin="anonymous" and CORS on the bucket,
+ * or the browser keeps its pixels from the page and this throws.
+ */
+export async function frameToJpeg(video: HTMLVideoElement): Promise<Blob | null> {
+  if (video.videoWidth === 0 || video.videoHeight === 0) return null;
+  return frameAsJpeg(video, video.videoWidth, video.videoHeight);
+}
+
+async function frameAsJpeg(video: HTMLVideoElement, width: number, height: number): Promise<Blob | null> {
+  const scale = Math.min(1, THUMBNAIL_WIDTH / width);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  const context = canvas.getContext("2d");
+  if (context === null) return null;
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+  return await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", THUMBNAIL_QUALITY));
 }
 
 function waitFor(video: HTMLVideoElement, eventName: "loadeddata" | "seeked"): Promise<void> {
