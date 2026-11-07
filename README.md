@@ -22,9 +22,39 @@
   · <a href="https://github.com/etak64n/albireo/issues">Issues</a>
 </p>
 
-[![A tour of albireo, with the sample videos of the demo](images/tour.gif)](https://etak64n.github.io/albireo/)
-
 The people you allow sign in with Cloudflare Access, then upload, watch, rate, and comment on videos, and attach files such as slides to them. Videos and attached files stay in your S3-compatible bucket as you uploaded them, and the browser sends and reads them directly, so their bytes never pass through the Worker. Each person chooses English or Japanese as the language of the app.
+
+## Features
+
+### Watch
+
+[![Playing the video that the home page of the demo recommends first](images/tour-watch.gif)](https://etak64n.github.io/albireo/)
+
+The home page recommends what to watch next: the next episode of a series that you are watching, then the videos that you have not watched yet.
+
+### Series
+
+[![A series of 20 lessons in the demo, and the list of its episodes beside a lesson](images/tour-series.gif)](https://etak64n.github.io/albireo/)
+
+A series groups videos as numbered episodes. The video page lists every episode of its series, and the next episode plays when one ends.
+
+### Attachments
+
+[![Files of several kinds attached to a video of the demo, each in the preview](images/tour-attachments.gif)](https://etak64n.github.io/albireo/)
+
+Attach slides, documents, pictures, and data to a video. PDF, PowerPoint, Markdown, text, CSV, JSON, and pictures open in a preview over the page, and every file downloads.
+
+### Comments
+
+[![A comment with a time, posted in the demo, and the video playing from that time](images/tour-comments.gif)](https://etak64n.github.io/albireo/)
+
+A time in a comment, such as 0:05, becomes a link that plays the video from there.
+
+### Search
+
+[![A search from the top bar of the demo, and the videos that it finds](images/tour-search.gif)](https://etak64n.github.io/albireo/)
+
+Search finds the videos whose title or description contains every word of the query.
 
 ## Architecture
 
