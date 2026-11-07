@@ -18,9 +18,10 @@ export function VideoTitle({ video }: { video: VideoDetail }) {
   return (
     <header className="grid gap-4">
       <div className="flex items-start justify-between gap-3">
-        <h1 className="min-w-0 text-display font-bold break-words text-strong">{video.title}</h1>
+        {/* The title under the player takes the size of a section heading, not of a page heading. */}
+        <h1 className="min-w-0 text-figure font-bold break-words text-strong">{video.title}</h1>
         {video.canEdit && (
-          <Link to={`/videos/${video.id}/edit`} className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "mt-1 shrink-0 text-subdued")}>
+          <Link to={`/videos/${video.id}/edit`} className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "shrink-0 text-subdued")}>
             <Pencil aria-hidden="true" />
             <span className="sr-only">{t.common.edit}</span>
           </Link>
