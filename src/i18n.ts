@@ -154,6 +154,7 @@ const en = {
     noEpisodesYet: "No videos in this series yet",
     deleteQuestion: "Delete this series?",
     deleteKeepsVideos: "Its videos stay in the library, out of any series.",
+    addToSeries: "Add to series",
   },
   thumbnail: {
     thumbnail: "Thumbnail",
@@ -384,6 +385,7 @@ const ja: Messages = {
     noEpisodesYet: "このシリーズにはまだ動画がありません",
     deleteQuestion: "このシリーズを削除しますか？",
     deleteKeepsVideos: "動画はシリーズから外れて、ライブラリに残ります。",
+    addToSeries: "シリーズに追加",
   },
   thumbnail: {
     thumbnail: "サムネイル",

@@ -174,7 +174,7 @@ export function VideoPage({ id }: { id: string }) {
                   <VideoPlayer video={video} videoRef={player} autoPlay={autoPlay} onEnded={playNext} />
                 </Suspense>
               </div>
-              <VideoTitle video={video} />
+              <VideoTitle video={video} onChange={setVideo} />
             </div>
             <div className="@4xl:hidden">
               <VideoAside video={video} episodes={episodes} playlistId={playlistId} playlist={playlist} onRated={rate} layout="row" />

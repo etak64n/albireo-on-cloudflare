@@ -6,6 +6,7 @@ import { useT } from "../i18n.ts";
 import { cn } from "../lib/utils.ts";
 import { Link } from "../router.tsx";
 import { AddToPlaylist } from "./AddToPlaylist.tsx";
+import { AddToSeries } from "./AddToSeries.tsx";
 import { Button, buttonVariants } from "./ui/button.tsx";
 import { Input, Label, Textarea } from "./ui/field.tsx";
 import { Select } from "./ui/select.tsx";
@@ -13,10 +14,11 @@ import { useToast } from "./ui/toast.tsx";
 
 /**
  * The title, the series, and the description of a video on its page. Beside the title, Add to
- * playlist puts the video in the playlists of the signed-in person, and for the uploader of the
- * video and admins, a small pencil opens the edit page of the video. The series leads to its page.
+ * playlist puts the video in the playlists of the signed-in person. For the uploader of the video
+ * and admins, Add to series puts it in a series, and a small pencil opens the edit page of the
+ * video. The series leads to its page.
  */
-export function VideoTitle({ video }: { video: VideoDetail }) {
+export function VideoTitle({ video, onChange }: { video: VideoDetail; onChange: (video: VideoDetail) => void }) {
   const t = useT();
   return (
     <header className="grid gap-4">
@@ -25,6 +27,7 @@ export function VideoTitle({ video }: { video: VideoDetail }) {
         <h1 className="min-w-0 text-figure font-bold break-words text-strong">{video.title}</h1>
         <div className="flex shrink-0 items-center gap-1">
           <AddToPlaylist videoId={video.id} />
+          {video.canEdit && <AddToSeries video={video} onChange={onChange} />}
           {video.canEdit && (
             <Link to={`/videos/${video.id}/edit`} className={cn(buttonVariants({ variant: "ghost", size: "icon" }), "text-subdued")}>
               <Pencil aria-hidden="true" />
