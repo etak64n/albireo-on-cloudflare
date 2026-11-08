@@ -1,11 +1,12 @@
 import type { PlaylistSummary, SeriesSummary } from "../../shared/api.ts";
+import { cn } from "../lib/utils.ts";
 import { Link } from "../router.tsx";
 import { GRID_CLASS } from "./VideoGrid.tsx";
 import { Thumbnail } from "./Thumbnail.tsx";
 
-export function SeriesGrid({ series }: { series: SeriesSummary[] }) {
+export function SeriesGrid({ series, className }: { series: SeriesSummary[]; className?: string }) {
   return (
-    <div className={GRID_CLASS}>
+    <div className={cn(GRID_CLASS, className)}>
       {series.map((item) => (
         <StackCard key={item.id} to={`/series/${item.id}`} title={item.title} coverUrl={item.coverUrl} ownerName={item.owner.displayName} />
       ))}

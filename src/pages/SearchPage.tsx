@@ -13,8 +13,18 @@ import { containsEvery, searchWords } from "../lib/search.ts";
 import { usePageTitle } from "../lib/title.ts";
 import { useLocationSearch } from "../router.tsx";
 
-/** The results show this many series until Show all: one row of the grid at its widest. */
-const SERIES_SHOWN = 3;
+/**
+ * Until Show all, the series fill one row of the grid: one, two, or three, as many as the width
+ * of the page gives the grid columns (GRID_CLASS). The class hides the series after the row.
+ */
+const ONE_ROW = "@max-md:[&>*:nth-child(n+2)]:hidden @md:@max-3xl:[&>*:nth-child(n+3)]:hidden";
+const WIDEST_ROW = 3;
+
+/** Show all stays under the width at which one row holds every series that the search found. */
+function showAllClass(count: number): string | undefined {
+  if (count > WIDEST_ROW) return undefined;
+  return count === WIDEST_ROW ? "@3xl:hidden" : "@md:hidden";
+}
 
 /**
  * The series and the videos that the query in the address, ?q=, finds. The series are those
@@ -89,9 +99,10 @@ export function SearchPage() {
           <Section
             title={t.common.series}
             actions={
-              foundSeries.length > SERIES_SHOWN ? (
+              foundSeries.length > 1 ? (
                 <Button
                   variant="ghost"
+                  className={showAllClass(foundSeries.length)}
                   aria-expanded={everySeries}
                   aria-controls={seriesListId}
                   onClick={() => setExpandedQuery(everySeries ? null : query)}
@@ -102,7 +113,10 @@ export function SearchPage() {
             }
           >
             <div id={seriesListId}>
-              <SeriesGrid series={everySeries ? foundSeries : foundSeries.slice(0, SERIES_SHOWN)} />
+              <SeriesGrid
+                series={everySeries ? foundSeries : foundSeries.slice(0, WIDEST_ROW)}
+                className={everySeries ? undefined : ONE_ROW}
+              />
             </div>
           </Section>
           {/* Under the series, the videos have a heading too, unless the search finds none. */}
