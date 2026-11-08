@@ -27,7 +27,9 @@ import type {
   UserResponse,
   VideoResponse,
 } from "../shared/api.ts";
+import type { D1Database, D1PreparedStatement } from "../worker/env.ts";
 import { S3ObjectStore } from "../worker/storage.ts";
+import { VideoRepository } from "../worker/videos.ts";
 import { ADMIN_EMAIL, TEAM_DOMAIN, VIEWER_EMAIL } from "./support/access.ts";
 import { createTestApp, json, SIGNED_IN_IDENTITY, type TestApp } from "./support/app.ts";
 
@@ -1199,6 +1201,40 @@ describe("search", () => {
     expect(second.nextCursor).toBeNull();
     const seen = new Set([...first.videos, ...second.videos].map((video) => video.id));
     expect(seen.size).toBe(LIST_PAGE_SIZE + 1);
+  });
+
+  // The plan of the query of a search, step by step, as SQLite describes it.
+  const planOf = async (app: TestApp, terms: string[]) => {
+    const plan: string[] = [];
+    const explaining: D1Database = {
+      ...app.env.DB,
+      prepare: (query) =>
+        ({
+          bind: (...values: unknown[]) => ({
+            all: async () => {
+              const { results } = await app.env.DB.prepare(`EXPLAIN QUERY PLAN ${query}`).bind(...values).all<{ detail: string }>();
+              plan.push(...results.map((row) => row.detail));
+              return { results: [], meta: {} };
+            },
+          }),
+        }) as unknown as D1PreparedStatement,
+    };
+    await new VideoRepository(explaining).search(terms, LIST_PAGE_SIZE + 1, 0);
+    return plan;
+  };
+
+  it("reads each video at most once for words too short for the index", async () => {
+    const app = await createTestApp();
+    await uploadVideo(app, "英語の学習", MIB);
+    expect((await planOf(app, ["英語"])).filter((step) => step.includes("video_search"))).toEqual([]);
+  });
+
+  it("starts from the index for longer words, and reads the videos that it finds by ID", async () => {
+    const app = await createTestApp();
+    await uploadVideo(app, "英語の学習", MIB);
+    const plan = await planOf(app, ["英語の学習", "英語"]);
+    expect(plan[0]).toContain("video_search");
+    expect(plan.filter((step) => /^SCAN (TABLE videos|v)\b/.test(step))).toEqual([]);
   });
 
   it("needs a query of 1 to 100 characters", async () => {

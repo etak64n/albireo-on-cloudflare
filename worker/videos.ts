@@ -270,28 +270,35 @@ export class VideoRepository {
   /**
    * The ready videos whose title or description contains every term, ignoring case.
    * The trigram index looks up terms of three or more characters and ranks title matches
-   * first. Shorter terms, which it cannot look up, are checked row by row.
+   * first. Shorter terms, which it cannot look up, are checked row by row: in the videos
+   * that the index found, or without a longer term, in each ready video once, from the newest.
    */
   async search(terms: readonly string[], limit: number, offset: number): Promise<VideoRecord[]> {
     const indexed = terms.filter((term) => [...term].length >= 3);
     const short = terms.filter((term) => [...term].length < 3);
     const conditions = ["v.status = 'ready'"];
     const values: unknown[] = [];
+    let from = "FROM videos v";
+    let rank = "";
     if (indexed.length > 0) {
+      // CROSS JOIN keeps the index first, so each row that it finds reads its video by ID. In
+      // the other order, each video would read the whole index, which does not index the IDs:
+      // with 1,600 videos, a search read 2.6 million rows.
+      from = "FROM video_search CROSS JOIN videos v ON v.id = video_search.video_id";
       // Each term is a quoted phrase, so characters such as * and : are plain text.
       conditions.push("video_search MATCH ?");
       values.push(indexed.map((term) => `"${term.replace(/"/g, '""')}"`).join(" "));
+      // bm25 weighs a match in the title ten times a match in the description.
+      rank = "bm25(video_search, 0, 10, 1), ";
     }
     for (const term of short) {
-      conditions.push("instr(lower(video_search.title || char(10) || video_search.description), ?) > 0");
+      conditions.push("instr(lower(v.title || char(10) || v.description), ?) > 0");
       values.push(term.toLowerCase());
     }
-    // bm25 weighs a match in the title ten times a match in the description.
-    const rank = indexed.length > 0 ? "bm25(video_search, 0, 10, 1), " : "";
     values.push(limit, offset);
     const { results } = await this.#db
       .prepare(
-        `${SELECT.replace("FROM videos v", "FROM video_search JOIN videos v ON v.id = video_search.video_id")} `
+        `${SELECT.replace("FROM videos v", from)} `
           + `WHERE ${conditions.join(" AND ")} ORDER BY ${rank}v.created_at DESC, v.id DESC LIMIT ? OFFSET ?`,
       )
       .bind(...values)
