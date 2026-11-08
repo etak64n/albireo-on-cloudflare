@@ -29,7 +29,16 @@ export function AddToSeries({ video, onChange }: { video: VideoDetail; onChange:
         <span className="max-md:sr-only">{t.series.addToSeries}</span>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent
+          // The dialog opens on the row of the series of the video, as a select opens on its choice,
+          // so Enter right away changes nothing.
+          onOpenAutoFocus={(event) => {
+            const chosen = (event.target as HTMLElement).querySelector<HTMLElement>('[aria-pressed="true"]');
+            if (chosen === null) return;
+            event.preventDefault();
+            chosen.focus();
+          }}
+        >
           <DialogTitle>{t.series.addToSeries}</DialogTitle>
           {open && <SeriesChoices video={video} onChange={onChange} />}
           <div className="flex justify-end">
