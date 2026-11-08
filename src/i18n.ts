@@ -40,7 +40,6 @@ const en = {
     openMenu: "Open the menu",
     closeMenu: "Close the menu",
     search: "Search",
-    searchVideos: "Search videos",
     accountOf: (name: string) => `Account of ${name}`,
     yourChannel: "Your channel",
     logOut: "Log out",
@@ -96,6 +95,8 @@ const en = {
   search: {
     title: "Search",
     resultsFor: (query: string) => `Results for “${query}”`,
+    showAll: "Show all",
+    showFewer: "Show fewer",
   },
   notFound: {
     title: "Not found",
@@ -270,7 +271,6 @@ const ja: Messages = {
     openMenu: "メニューを開く",
     closeMenu: "メニューを閉じる",
     search: "検索",
-    searchVideos: "動画を検索",
     accountOf: (name) => `${name} のアカウント`,
     yourChannel: "自分のチャンネル",
     logOut: "ログアウト",
@@ -326,6 +326,8 @@ const ja: Messages = {
   search: {
     title: "検索",
     resultsFor: (query) => `「${query}」の検索結果`,
+    showAll: "すべて表示",
+    showFewer: "折りたたむ",
   },
   notFound: {
     title: "見つかりません",

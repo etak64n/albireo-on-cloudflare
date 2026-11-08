@@ -134,7 +134,7 @@ function SearchBox() {
         onChange={(event) => setQuery(event.target.value)}
         maxLength={SEARCH_QUERY_MAX_LENGTH}
         placeholder={t.shell.search}
-        aria-label={t.shell.searchVideos}
+        aria-label={t.shell.search}
         className="h-9 w-full rounded-md bg-surface-subdued pr-3 pl-9 text-sm text-ink placeholder:text-placeholder pointer-coarse:min-h-11 pointer-coarse:text-base"
       />
     </form>

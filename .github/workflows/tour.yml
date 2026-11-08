@@ -321,7 +321,7 @@ jobs:
           // Search: a search from the top bar, and the videos that it finds.
           await openHome();
           await record("search", async () => {
-            const search = page.getByRole("textbox", { name: "Search videos" });
+            const search = page.getByRole("textbox", { name: "Search", exact: true });
             await pointAt(search);
             await search.click();
             await page.keyboard.type(process.env.TOUR_QUERY, { delay: 120 });

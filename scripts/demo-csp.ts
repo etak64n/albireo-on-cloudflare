@@ -193,7 +193,7 @@ async function main(site: string, toolsFolder: string, base: string): Promise<vo
       await page.getByRole("dialog").waitFor({ state: "hidden" });
     }
     await run(`A search for "${QUERY}"`, async () => {
-      await page.getByRole("textbox", { name: "Search videos" }).click();
+      await page.getByRole("textbox", { name: "Search", exact: true }).click();
       await page.keyboard.type(QUERY);
       await page.keyboard.press("Enter");
       await page.getByRole("heading", { name: new RegExp(QUERY), level: 1 }).waitFor();

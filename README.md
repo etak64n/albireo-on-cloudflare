@@ -54,7 +54,7 @@ A time in a comment, such as 0:05, becomes a link that plays the video from ther
 
 [![A search from the top bar of the demo, and the videos that it finds](images/tour-search.gif)](https://etak64n.github.io/albireo/)
 
-Search finds the videos whose title or description contains every word of the query.
+Search finds the series whose title contains every word of the query, and the videos whose title or description does.
 
 ## Architecture
 
