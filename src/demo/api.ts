@@ -176,7 +176,7 @@ function newId(): string {
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) => ID_ALPHABET.charAt(byte % ID_ALPHABET.length)).join("");
 }
 
-/** A file beside the demo, under the base of the site, such as /albireo/media/videos/mandelbrot.mp4. */
+/** A file beside the demo, under the base of the site, such as /albireo-on-cloudflare/media/videos/mandelbrot.mp4. */
 function mediaUrl(path: string): string {
   return `${import.meta.env.BASE_URL}${path}`;
 }

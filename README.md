@@ -5,54 +5,56 @@
   </picture>
 </h1>
 
-<p align="center">albireo is a private video library built on Cloudflare Workers.</p>
+<p align="center">albireo-on-cloudflare is albireo, a private video library, built on Cloudflare Workers.</p>
 
 <p align="center">
-  <a href="https://github.com/etak64n/albireo/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/etak64n/albireo/actions/workflows/ci.yml/badge.svg" /></a>
-  <a href="https://github.com/etak64n/albireo/actions/workflows/pages.yml"><img alt="Pages" src="https://github.com/etak64n/albireo/actions/workflows/pages.yml/badge.svg" /></a>
-  <a href="https://github.com/etak64n/albireo/releases"><img alt="Release" src="https://img.shields.io/github/v/release/etak64n/albireo" /></a>
-  <a href="https://github.com/etak64n/albireo/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/etak64n/albireo" /></a>
+  <a href="https://github.com/etak64n/albireo-on-cloudflare/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/etak64n/albireo-on-cloudflare/actions/workflows/ci.yml/badge.svg" /></a>
+  <a href="https://github.com/etak64n/albireo-on-cloudflare/actions/workflows/pages.yml"><img alt="Pages" src="https://github.com/etak64n/albireo-on-cloudflare/actions/workflows/pages.yml/badge.svg" /></a>
+  <a href="https://github.com/etak64n/albireo-on-cloudflare/releases"><img alt="Release" src="https://img.shields.io/github/v/release/etak64n/albireo-on-cloudflare" /></a>
+  <a href="https://github.com/etak64n/albireo-on-cloudflare/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/etak64n/albireo-on-cloudflare" /></a>
 </p>
 
 <p align="center">
-  <a href="https://etak64n.github.io/albireo/">Live Demo</a>
-  · <a href="https://etak64n.github.io/albireo/docs/">Docs</a>
+  <a href="https://etak64n.github.io/albireo-on-cloudflare/">Live Demo</a>
+  · <a href="https://etak64n.github.io/albireo-on-cloudflare/docs/">Docs</a>
   · <a href="#quickstart">Quickstart</a>
-  · <a href="https://github.com/etak64n/albireo/releases">Releases</a>
-  · <a href="https://github.com/etak64n/albireo/issues">Issues</a>
+  · <a href="https://github.com/etak64n/albireo-on-cloudflare/releases">Releases</a>
+  · <a href="https://github.com/etak64n/albireo-on-cloudflare/issues">Issues</a>
 </p>
 
 The people you allow sign in with Cloudflare Access, then upload, watch, rate, and comment on videos, and attach files such as slides to them. Videos and attached files stay in your S3-compatible bucket as you uploaded them, and the browser sends and reads them directly, so their bytes never pass through the Worker. Each person chooses English or Japanese as the language of the app.
+
+To run albireo in one Docker container with only an S3-compatible bucket, see [albireo](https://github.com/etak64n/albireo).
 
 ## Features
 
 ### Watch
 
-[![Playing the video that the home page of the demo recommends first](images/tour-watch.gif)](https://etak64n.github.io/albireo/)
+[![Playing the video that the home page of the demo recommends first](images/tour-watch.gif)](https://etak64n.github.io/albireo-on-cloudflare/)
 
 The home page recommends what to watch next: the next episode of a series that you are watching, then the videos that you have not watched yet.
 
 ### Series
 
-[![A series of 20 lessons in the demo, and the list of its episodes beside a lesson](images/tour-series.gif)](https://etak64n.github.io/albireo/)
+[![A series of 20 lessons in the demo, and the list of its episodes beside a lesson](images/tour-series.gif)](https://etak64n.github.io/albireo-on-cloudflare/)
 
 A series groups videos as numbered episodes. The video page lists every episode of its series, and the next episode plays when one ends.
 
 ### Attachments
 
-[![Files of several kinds attached to a video of the demo, each in the preview](images/tour-attachments.gif)](https://etak64n.github.io/albireo/)
+[![Files of several kinds attached to a video of the demo, each in the preview](images/tour-attachments.gif)](https://etak64n.github.io/albireo-on-cloudflare/)
 
 Attach slides, documents, pictures, and data to a video. PDF, PowerPoint, Markdown, text, CSV, JSON, and pictures open in a preview over the page, and every file downloads.
 
 ### Comments
 
-[![A comment with a time, posted in the demo, and the video playing from that time](images/tour-comments.gif)](https://etak64n.github.io/albireo/)
+[![A comment with a time, posted in the demo, and the video playing from that time](images/tour-comments.gif)](https://etak64n.github.io/albireo-on-cloudflare/)
 
 A time in a comment, such as 0:05, becomes a link that plays the video from there.
 
 ### Search
 
-[![A search from the top bar of the demo, and the videos that it finds](images/tour-search.gif)](https://etak64n.github.io/albireo/)
+[![A search from the top bar of the demo, and the videos that it finds](images/tour-search.gif)](https://etak64n.github.io/albireo-on-cloudflare/)
 
 Search finds the series whose title contains every word of the query, and the videos whose title or description does.
 
@@ -72,7 +74,7 @@ The bucket stays outside the stack, because it can be at any S3-compatible provi
 
 ## Quickstart
 
-To try albireo on your machine without a Cloudflare account or a bucket, see [Try it locally](https://etak64n.github.io/albireo/docs/getting-started/try-locally/).
+To try albireo on your machine without a Cloudflare account or a bucket, see [Try it locally](https://etak64n.github.io/albireo-on-cloudflare/docs/getting-started/try-locally/).
 
 ### Prerequisites
 
@@ -91,8 +93,8 @@ Clone the repository, check out the `latest` release tag, and install the depend
 
 ```bash
 # Clone the repository, switch to the latest release, and install the dependencies
-git clone https://github.com/etak64n/albireo.git
-cd albireo
+git clone https://github.com/etak64n/albireo-on-cloudflare.git
+cd albireo-on-cloudflare
 git checkout latest
 pnpm install
 ```
@@ -223,11 +225,11 @@ pnpm exec cf auth login
 pnpm stack:deploy
 ```
 
-See [Configuration](https://etak64n.github.io/albireo/docs/settings/configuration/) for every setting and [Deploy](https://etak64n.github.io/albireo/docs/getting-started/deploy/) for the full deployment guide.
+See [Configuration](https://etak64n.github.io/albireo-on-cloudflare/docs/settings/configuration/) for every setting and [Deploy](https://etak64n.github.io/albireo-on-cloudflare/docs/getting-started/deploy/) for the full deployment guide.
 
 ## Updating and Uninstalling
 
-Before you update, check the [release notes](https://github.com/etak64n/albireo/releases) for changes that your settings need. Then fetch the tags, switch to `latest`, install the dependencies, and deploy the stack again.
+Before you update, check the [release notes](https://github.com/etak64n/albireo-on-cloudflare/releases) for changes that your settings need. Then fetch the tags, switch to `latest`, install the dependencies, and deploy the stack again.
 
 ```bash
 # Fetch the tags of new releases, and switch to the latest release

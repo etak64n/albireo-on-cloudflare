@@ -1,5 +1,5 @@
 {
-  "name": "albireo",
+  "name": "albireo-on-cloudflare",
   "version": "0.28.0",
   "private": true,
   "description": "A private video library that runs on Cloudflare Workers and keeps videos in S3-compatible object storage.",

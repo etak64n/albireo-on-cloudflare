@@ -1,5 +1,5 @@
 // The documentation site of albireo, built with Starlight. .github/workflows/pages.yml
-// publishes it to GitHub Pages at https://etak64n.github.io/albireo/docs/, beside the
+// publishes it to GitHub Pages at https://etak64n.github.io/albireo-on-cloudflare/docs/, beside the
 // demo at the root of the site.
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
@@ -7,15 +7,15 @@ import { defineConfig } from "astro/config";
 export default defineConfig({
   site: "https://etak64n.github.io",
   // GitHub Pages serves the site under the name of the repository, and the demo takes its root.
-  base: "/albireo/docs",
+  base: "/albireo-on-cloudflare/docs",
   integrations: [
     starlight({
-      title: "albireo",
+      title: "albireo on Cloudflare",
       description: "A private video library on Cloudflare Workers.",
       logo: { src: "./src/assets/albireo-icon.svg" },
       favicon: "/favicon.svg",
-      social: [{ icon: "github", label: "GitHub", href: "https://github.com/etak64n/albireo" }],
-      editLink: { baseUrl: "https://github.com/etak64n/albireo/edit/main/docs/" },
+      social: [{ icon: "github", label: "GitHub", href: "https://github.com/etak64n/albireo-on-cloudflare" }],
+      editLink: { baseUrl: "https://github.com/etak64n/albireo-on-cloudflare/edit/main/docs/" },
       // The same groups as the documentation of deneb: getting started, guides, settings,
       // internals, and the project itself.
       sidebar: [

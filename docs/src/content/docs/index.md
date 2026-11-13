@@ -6,7 +6,9 @@ description: "A private video library on Cloudflare Workers."
 albireo is a private video library that runs on Cloudflare Workers and keeps videos in S3-compatible object storage.
 The people you allow sign in with Cloudflare Access, then upload, watch, rate, and comment on videos, and attach files such as slides to them.
 
-Try the [demo](/albireo/), which shows every page with sample data.
+Try the [demo](/albireo-on-cloudflare/), which shows every page with sample data.
+
+To run albireo in one Docker container with only an S3-compatible bucket, see [albireo](https://github.com/etak64n/albireo).
 
 ## In short
 
