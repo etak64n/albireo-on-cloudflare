@@ -8,7 +8,7 @@ The people you allow sign in with Cloudflare Access, then upload, watch, rate, a
 
 Try the [demo](/albireo-on-cloudflare/), which shows every page with sample data.
 
-To run albireo in one Docker container with only an S3-compatible bucket, see [albireo](https://github.com/etak64n/albireo).
+To run albireo in Docker containers, with PostgreSQL and an S3-compatible bucket, see [albireo](https://github.com/etak64n/albireo).
 
 ## In short
 

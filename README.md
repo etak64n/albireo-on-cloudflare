@@ -24,7 +24,7 @@
 
 The people you allow sign in with Cloudflare Access, then upload, watch, rate, and comment on videos, and attach files such as slides to them. Videos and attached files stay in your S3-compatible bucket as you uploaded them, and the browser sends and reads them directly, so their bytes never pass through the Worker. Each person chooses English or Japanese as the language of the app.
 
-To run albireo in one Docker container with only an S3-compatible bucket, see [albireo](https://github.com/etak64n/albireo).
+To run albireo in Docker containers, with PostgreSQL and an S3-compatible bucket, see [albireo](https://github.com/etak64n/albireo).
 
 ## Features
 
